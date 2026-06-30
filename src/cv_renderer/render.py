@@ -33,6 +33,23 @@ def _make_fmtdate(months: list[str], present_label: str) -> Callable:
     return fmtdate
 
 
+def _to_title_slug(s: str) -> str:
+    return "_".join(w.title() for w in s.replace("-", " ").replace("/", " ").split())
+
+
+def _resolve_out_path(profile_name: str, full_name: str, lang: str) -> Path:
+    profile_dir = _OUT / profile_name.replace("/", "-")
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    base = f"{_to_title_slug(full_name)}_{_to_title_slug(profile_name)}_{lang.upper()}_CV"
+    path = profile_dir / f"{base}.html"
+    if path.exists():
+        v = 2
+        while (profile_dir / f"{base}_v{v}.html").exists():
+            v += 1
+        path = profile_dir / f"{base}_v{v}.html"
+    return path
+
+
 def render(profile_name: str, lang: str | None = None, export_pdf: bool = False, template: str | None = None) -> Path:
     profile = load_profile(profile_name)
     if lang:
@@ -53,9 +70,7 @@ def render(profile_name: str, lang: str | None = None, export_pdf: bool = False,
     template = env.get_template(f"{profile.template}.html.j2")
     html = template.render(**context)
 
-    _OUT.mkdir(exist_ok=True)
-    slug = profile_name.replace("/", "-")
-    out_html = _OUT / f"{slug}.html"
+    out_html = _resolve_out_path(profile_name, cv.meta.name, profile.lang)
     out_html.write_text(html, encoding="utf-8")
 
     if export_pdf:
