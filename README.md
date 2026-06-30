@@ -3,13 +3,13 @@
 > One YAML file. Multiple tailored CVs. One command per application.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
-[![uv](https://img.shields.io/badge/package%20manager-uv-orange)](https://github.com/astral-sh/uv)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![uv](https://img.shields.io/badge/uv-package%20manager-DE5FE9?logo=astral&logoColor=white)](https://github.com/astral-sh/uv)
+[![Jinja2](https://img.shields.io/badge/templates-Jinja2-B41717?logo=jinja&logoColor=white)](https://jinja.palletsprojects.com/)
+[![Playwright](https://img.shields.io/badge/PDF%20export-Playwright-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev/python/)
 
 All your CV content lives once in a YAML file. A **profile** defines what to show and what to emphasize for each application. The render engine produces a clean HTML and optionally a print-ready PDF — one command per role.
 
----
 
 ## Quickstart
 
@@ -25,7 +25,6 @@ uv run python render.py init
 
 Then fill in `user-data/data/base_en.yaml` with your own content.
 
----
 
 ## Usage
 
@@ -45,7 +44,6 @@ uv run python render.py --list
 
 Output lands in `out/`.
 
----
 
 ## How It Works
 
@@ -69,7 +67,6 @@ max_bullets_per_job: 4
 
 The render engine merges the two, feeds the result into a Jinja2 template, and produces the output. The visual design never changes — only the content does.
 
----
 
 ## Tag System
 
@@ -85,7 +82,6 @@ The render engine merges the two, feeds the result into a Jinja2 template, and p
 
 Tags are the only interface between data and profiles. A bullet that covers both FastAPI and PostgreSQL gets `[backend, data]`, not one or the other.
 
----
 
 ## Profiles
 
@@ -96,7 +92,6 @@ Tags are the only interface between data and profiles. A bullet that covers both
 | `data-engineer` | dbt/SQL/pipeline work foregrounded |
 | `companies/spotify` | Per-application, typically agent-generated |
 
----
 
 ## Languages
 
@@ -104,7 +99,6 @@ The data directory holds one file per language: `base_en.yaml` for English, `bas
 
 Add any language by creating `base_<lang>.yaml` and selecting it with `--lang <lang>`.
 
----
 
 ## Agentic Workflow
 
@@ -116,7 +110,6 @@ uv run python render.py --profile companies/spotify --export pdf
 
 Writing rules for bullet generation and profile creation are in [`AGENTS.md`](AGENTS.md).
 
----
 
 ## Project Structure
 
@@ -135,7 +128,6 @@ cv-renderer/
 └── out/                          ← rendered outputs (gitignored)
 ```
 
----
 
 ## License
 
