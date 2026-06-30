@@ -2,10 +2,12 @@ import os
 from pathlib import Path
 
 import yaml
+from dotenv import load_dotenv
 
 from cv_renderer.models import CVData, Profile
 
 _ROOT = Path(__file__).parent.parent.parent
+load_dotenv(_ROOT / ".env")
 _USER_DATA = (
     Path(os.environ["CV_DATA_DIR"]) if "CV_DATA_DIR" in os.environ else _ROOT / "user-data"
 )
@@ -14,11 +16,12 @@ _USER_DATA = (
 def _user_data_root() -> Path:
     if not _USER_DATA.exists():
         raise FileNotFoundError(
-            f"CV data directory not found: {_USER_DATA}\n"
-            "Either set CV_DATA_DIR env var or create user-data/ from the examples:\n"
+            f"CV data directory not found: {_USER_DATA}\n\n"
+            "Option 1 — create a fresh data directory inside the repo:\n"
             "  uv run python render.py init\n"
-            "  cp profiles/general.example.yaml user-data/profiles/general.yaml\n"
-            "Then fill in your own information."
+            "  Then fill in user-data/ with your own information.\n\n"
+            "Option 2 — point to an existing data directory:\n"
+            "  Set CV_DATA_DIR in your .env file to the absolute path of your data folder."
         )
     return _USER_DATA
 
@@ -40,6 +43,11 @@ def load_labels(lang: str = "en") -> dict[str, str]:
 
 def load_profile(name: str) -> Profile:
     path = _user_data_root() / "profiles" / f"{name}.yaml"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Profile '{name}' not found at {path}\n"
+            "Run 'uv run python render.py --list' to see available profiles."
+        )
     with open(path, encoding="utf-8") as f:
         raw = yaml.safe_load(f)
     return Profile.model_validate(raw)

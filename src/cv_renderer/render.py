@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 from pathlib import Path
 from typing import Callable
@@ -12,7 +13,7 @@ from cv_renderer.loader import _USER_DATA, load_cv, load_labels, load_profile
 
 _ROOT = Path(__file__).parent.parent.parent
 _TEMPLATES = _ROOT / "templates"
-_OUT = _ROOT / "out"
+_OUT = Path(os.environ["CV_OUT_DIR"]) if "CV_OUT_DIR" in os.environ else _USER_DATA / "out"
 _EXAMPLES = _ROOT / "examples"
 
 def _make_fmtdate(months: list[str], present_label: str) -> Callable:
@@ -101,7 +102,11 @@ def main() -> None:
     if not args.profile:
         parser.error("--profile is required (or use --list to see options)")
 
-    out = render(args.profile, lang=args.lang, export_pdf=args.export == "pdf", template=args.template)
+    try:
+        out = render(args.profile, lang=args.lang, export_pdf=args.export == "pdf", template=args.template)
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        raise SystemExit(1)
     print(f"Rendered: {out}")
 
 
