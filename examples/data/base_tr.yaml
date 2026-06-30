@@ -1,0 +1,92 @@
+meta:
+  name: Adınız Soyadınız
+  title:
+    default: Yazılım Mühendisi
+    ai: Yapay Zeka Mühendisi
+    data: Veri Mühendisi
+  location: Şehir, Türkiye
+  email: siz@ornek.com
+  phone: "+90 5XX XXX XX XX"
+  links:
+    linkedin: linkedin.com/in/profiliniz
+    github: github.com/kullaniciadi
+    portfolio: portfolyonuz.com
+
+about:
+  default: |
+    Genel profesyonel özetiniz.
+  ai: |
+    Yapay zeka odaklı özetiniz.
+  data: |
+    Veri odaklı özetiniz.
+
+experience:
+  - company: Şirket Adı
+    title:
+      default: Yazılım Mühendisi
+      ai: Yapay Zeka Mühendisi
+      data: Veri Mühendisi
+    location: Şehir
+    start: "2024"
+    end: present
+    tags: [ai, data, backend]
+    description: "Ekip veya ürün kısa açıklaması."
+    bullets:
+      - text: "Ölçülebilir etkiyle bir başarı."
+        tags: [ai, backend]
+      - text: "Başka bir başarı."
+        tags: [data]
+
+  - company: Önceki Şirket
+    title:
+      default: Stajyer
+      ai: Stajyer
+      data: Stajyer
+    location: Şehir
+    start: 2023-06
+    end: 2023-09
+    tags: [ml]
+    bullets:
+      - text: "Ne yaptınız ve neden önemliydi."
+        tags: [ml]
+
+education:
+  - institution: Üniversite Adı
+    degree: "Lisans, Bilgisayar Mühendisliği"
+    location: Türkiye
+    start: 2020
+    end: 2024
+    tags: [always]
+
+skills:
+  - category: Backend ve API
+    tags: [backend, always]
+    items: "Python, FastAPI, ..."
+  - category: Veri Mühendisliği
+    tags: [data]
+    items: "PostgreSQL, dbt Core, ..."
+  - category: AI ve LLM Sistemleri
+    tags: [ai, llm]
+    items: "LangChain, LangGraph, ..."
+  - category: ML ve Değerlendirme
+    tags: [ml, ai]
+    items: "PyTorch, scikit-learn, ..."
+  - category: Altyapı ve DevOps
+    tags: [devops, backend]
+    items: "Docker, CI/CD, ..."
+
+projects:
+  - name: Proje Adı
+    subtitle: Açık Kaynak, GitHub
+    year: 2024
+    tags: [ai, backend]
+    bullets:
+      - text: "Ne inşa ettiniz ve neden önemli."
+        tags: [ai, backend]
+
+additional:
+  languages:
+    - Türkçe (Anadil)
+    - İngilizce (İş Düzeyi)
+  certifications:
+    - "Sertifikanız, Kurum"

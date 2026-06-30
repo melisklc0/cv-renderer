@@ -1,0 +1,91 @@
+meta:
+  name: Your Name
+  title:
+    default: Software Engineer
+    ai: AI Engineer
+    data: Data Engineer
+  location: City, Country
+  email: you@example.com
+  phone: "+1 555 000 0000"
+  links:
+    linkedin: linkedin.com/in/yourprofile
+    github: github.com/yourusername
+    portfolio: yourportfolio.com
+
+about:
+  default: |
+    Brief professional summary describing your background and focus.
+  ai: |
+    AI-focused variant of your summary.
+  data: |
+    Data-focused variant of your summary.
+
+experience:
+  - company: Company Name
+    title:
+      default: Software Engineer
+      ai: AI Engineer
+      data: Data Engineer
+    location: City
+    start: "2024"
+    end: present
+    tags: [ai, data, backend]
+    description: "Short description of the team or product."
+    bullets:
+      - text: "Accomplishment with measurable impact."
+        tags: [ai, backend]
+      - text: "Another accomplishment."
+        tags: [data]
+
+  - company: Previous Company
+    title:
+      default: Intern
+      ai: Intern
+      data: Intern
+    location: City
+    start: 2023-06
+    end: 2023-09
+    tags: [ml]
+    bullets:
+      - text: "What you did and why it mattered."
+        tags: [ml]
+
+education:
+  - institution: University Name
+    degree: "Bachelor's Degree, Computer Science"
+    location: Country
+    start: 2020
+    end: 2024
+    tags: [always]
+
+skills:
+  - category: Backend and API
+    tags: [backend, always]
+    items: "Python, FastAPI, ..."
+  - category: Data Engineering
+    tags: [data]
+    items: "PostgreSQL, dbt Core, ..."
+  - category: AI and LLM Systems
+    tags: [ai, llm]
+    items: "LangChain, LangGraph, ..."
+  - category: ML and Evaluation
+    tags: [ml, ai]
+    items: "PyTorch, scikit-learn, ..."
+  - category: Infra and DevOps
+    tags: [devops, backend]
+    items: "Docker, CI/CD, ..."
+
+projects:
+  - name: Project Name
+    subtitle: Open Source, GitHub
+    year: 2024
+    tags: [ai, backend]
+    bullets:
+      - text: "What you built and why it matters."
+        tags: [ai, backend]
+
+additional:
+  languages:
+    - English (Native)
+  certifications:
+    - "Your Certification, Issuer"

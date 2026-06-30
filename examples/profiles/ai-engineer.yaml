@@ -1,0 +1,13 @@
+name: AI Engineer
+description: Foregrounds LLM systems, agentic AI, and evaluation work
+variant: ai
+lang: en
+focus_tags: [ai, llm, ml]
+deprioritize_tags: [data]
+max_bullets_per_job: 4
+sections: [experience, skills, education, projects, additional]
+skill_categories:
+  - AI and LLM Systems
+  - ML and Evaluation
+  - Backend and API
+  - Infra and DevOps

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ meta.name }} — CV</title>
+  <style>
+    :root {
+      --size-name: {{ font_sizes.name }}pt;
+      --size-section: {{ font_sizes.section }}pt;
+      --size-body: {{ font_sizes.body }}pt;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: {{ font_family }};
+      font-size: var(--size-body);
+      line-height: 1.30;
+      color: #000;
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 28px 36px;
+    }
+
+    /* ── Header ── */
+    h1 {
+      font-size: var(--size-name);
+      font-weight: bold;
+      line-height: 1.1;
+      letter-spacing: -0.3px;
+    }
+    .headline {
+      margin-top: 2px;
+    }
+    .contact {
+      margin-top: 4px;
+    }
+    .contact a {
+      color: #1154CC;
+      text-decoration: underline;
+    }
+
+    header { margin-bottom: 10px; }
+
+    /* ── Sections ── */
+    section { margin-bottom: 10px; }
+
+    h2 {
+      font-size: var(--size-section);
+      font-weight: normal;
+      border-bottom: 1px solid #000;
+      padding-bottom: 1px;
+      margin-bottom: 5px;
+    }
+
+    /* ── About ── */
+    .about-text { text-align: justify; }
+
+    /* ── Shared layout ── */
+    .row-spaced {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .dates {
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ── Experience ── */
+    .job { margin-bottom: 7px; page-break-inside: avoid; }
+    .job-desc {
+      margin: 3px 0 3px;
+      text-align: justify;
+    }
+
+    /* ── Bullets ── */
+    ul.bullets {
+      list-style: none;
+      padding-left: 20px;
+      margin-top: 4px;
+    }
+    ul.bullets li {
+      position: relative;
+      padding-left: 12px;
+      margin-bottom: 2px;
+      text-align: justify;
+    }
+    ul.bullets li::before {
+      content: "-";
+      position: absolute;
+      left: 0;
+    }
+
+    /* ── Education ── */
+    .edu-row {
+      margin-bottom: 3px;
+      page-break-inside: avoid;
+      line-height: 1.15;
+    }
+
+    /* ── Skills ── */
+    .skill-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 2px;
+      line-height: 1.15;
+    }
+    .skill-cat {
+      min-width: 130px;
+      flex-shrink: 0;
+    }
+
+    /* ── Projects ── */
+    .project { margin-bottom: 7px; page-break-inside: avoid; }
+
+    /* ── Additional ── */
+    .additional-item { margin-bottom: 3px; }
+    .cert-row { display: flex; gap: 6px; align-items: flex-start; }
+    .cert-label { white-space: nowrap; flex-shrink: 0; }
+
+    /* ── Print ── */
+    @media print {
+      body { padding: 0; max-width: 100%; }
+      @page { size: A4; margin: 10mm 12mm 10mm 12mm; }
+      a { color: #1154CC; text-decoration: underline; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>{{ meta.name }}</h1>
+  <p class="headline">{{ meta.title }}</p>
+  <p class="contact">
+    {{- meta.location -}}
+    {%- if meta.email %} | <a href="mailto:{{ meta.email }}">{{ meta.email }}</a>{% endif %}
+    {%- if meta.phone %} | {{ meta.phone }}{% endif %}
+    {%- if meta.links.linkedin %} | <a href="https://{{ meta.links.linkedin }}">LinkedIn</a>{% endif %}
+    {%- if meta.links.github %} | <a href="https://{{ meta.links.github }}">GitHub</a>{% endif %}
+    {%- if meta.links.portfolio %} | <a href="https://{{ meta.links.portfolio }}">Portfolio</a>{% endif %}
+  </p>
+</header>
+
+{% if about %}
+<section>
+  <h2>{{ labels.about }}</h2>
+  <p class="about-text">{{ about | trim }}</p>
+</section>
+{% endif %}
+
+{% for section in sections %}
+
+{% if section == "experience" and experience %}
+<section>
+  <h2>{{ labels.experience }}</h2>
+  {% for job in experience %}
+  <div class="job">
+    <div class="row-spaced">
+      <strong>{{ job.title }}, {{ job.company }}, {{ job.location }}</strong>
+      <span class="dates">{{ job.start | fmtdate }} {{ labels.to }} {{ job.end | fmtdate }}</span>
+    </div>
+    {% if job.description %}<p class="job-desc">{{ job.description }}</p>{% endif %}
+    <ul class="bullets">
+      {% for b in job.bullets %}<li>{{ b }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if section == "education" and education %}
+<section>
+  <h2>{{ labels.education }}</h2>
+  {% for e in education %}
+  <div class="row-spaced edu-row">
+    <span><strong>{{ e.institution }}</strong>, {{ e.degree }}{% if e.location %}, {{ e.location }}{% endif %}</span>
+    <span class="dates">{{ e.start | fmtdate }} {{ labels.to }} {{ e.end | fmtdate }}</span>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if section == "skills" and skills %}
+<section>
+  <h2>{{ labels.skills }}</h2>
+  {% for cat in skills %}
+  <div class="skill-row">
+    <strong class="skill-cat">{{ cat.category }}:</strong>
+    <span>{{ cat.entries | join(", ") }}</span>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if section == "projects" and projects %}
+<section>
+  <h2>{{ labels.projects }}</h2>
+  {% for proj in projects %}
+  <div class="project">
+    <div class="row-spaced">
+      <strong>{{ proj.name }}{% if proj.subtitle %}, {{ proj.subtitle }}{% endif %}</strong>
+      <span class="dates">
+        {%- if proj.year %}{{ proj.year }}
+        {%- elif proj.start %}{{ proj.start | fmtdate }} {{ labels.to }} {{ proj.end | fmtdate }}
+        {%- endif %}
+      </span>
+    </div>
+    <ul class="bullets">
+      {% for b in proj.bullets %}<li>{{ b }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if section == "additional" and additional %}
+<section>
+  <h2>{{ labels.additional }}</h2>
+  {% if additional.languages %}
+  <p class="additional-item">
+    <strong>{{ labels.languages }}:</strong> {{ additional.languages | join(", ") }}
+  </p>
+  {% endif %}
+  {% if additional.certifications %}
+  <div class="additional-item cert-row">
+    <strong class="cert-label">{{ labels.certifications }}:</strong>
+    <span>{% for cert in additional.certifications %}{{ cert }}{% if not loop.last %}<br>{% endif %}{% endfor %}</span>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+{% endfor %}
+
+</body>
+</html>

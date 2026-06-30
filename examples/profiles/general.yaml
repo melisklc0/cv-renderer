@@ -1,0 +1,9 @@
+name: General
+description: Full CV, no tag filtering
+variant: default
+lang: en
+focus_tags: []
+deprioritize_tags: []
+max_bullets_per_job: 10
+sections: [experience, education, skills, projects, additional]
+skill_categories: ~
