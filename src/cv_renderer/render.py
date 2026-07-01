@@ -16,6 +16,7 @@ _TEMPLATES = _ROOT / "templates"
 _OUT = Path(os.environ["CV_OUT_DIR"]) if "CV_OUT_DIR" in os.environ else _USER_DATA / "out"
 _EXAMPLES = _ROOT / "examples"
 
+
 def _make_fmtdate(months: list[str], present_label: str) -> Callable:
 
     def fmtdate(d: str | int) -> str:
@@ -38,9 +39,12 @@ def _to_title_slug(s: str) -> str:
 
 
 def _resolve_out_path(profile_name: str, full_name: str, lang: str) -> Path:
-    profile_dir = _OUT / profile_name.replace("/", "-")
+    # Directories mirror the full profile path (out/companies/spotify/), but the
+    # filename drops the "companies/" grouping — it doesn't belong in a CV filename.
+    profile_dir = _OUT / profile_name
     profile_dir.mkdir(parents=True, exist_ok=True)
-    base = f"{_to_title_slug(full_name)}_{_to_title_slug(profile_name)}_{lang.upper()}_CV"
+    slug_source = profile_name.removeprefix("companies/")
+    base = f"{_to_title_slug(full_name)}_{_to_title_slug(slug_source)}_{lang.upper()}_CV"
     path = profile_dir / f"{base}.html"
     if path.exists():
         v = 2
@@ -50,7 +54,12 @@ def _resolve_out_path(profile_name: str, full_name: str, lang: str) -> Path:
     return path
 
 
-def render(profile_name: str, lang: str | None = None, export_pdf: bool = False, template: str | None = None) -> Path:
+def render(
+    profile_name: str,
+    lang: str | None = None,
+    export_pdf: bool = False,
+    template: str | None = None,
+) -> Path:
     profile = load_profile(profile_name)
     if lang:
         profile.lang = lang
@@ -65,7 +74,9 @@ def render(profile_name: str, lang: str | None = None, export_pdf: bool = False,
         loader=jinja2.FileSystemLoader(str(_TEMPLATES)),
         autoescape=jinja2.select_autoescape(["html"]),
     )
-    env.filters["fmtdate"] = _make_fmtdate(context["labels"]["months"], context["labels"]["present"])
+    env.filters["fmtdate"] = _make_fmtdate(
+        context["labels"]["months"], context["labels"]["present"]
+    )
 
     template = env.get_template(f"{profile.template}.html.j2")
     html = template.render(**context)
@@ -75,6 +86,7 @@ def render(profile_name: str, lang: str | None = None, export_pdf: bool = False,
 
     if export_pdf:
         from cv_renderer.exports import export_pdf as do_export
+
         pdf_out = do_export(out_html)
         return pdf_out
 
@@ -118,7 +130,12 @@ def main() -> None:
         parser.error("--profile is required (or use --list to see options)")
 
     try:
-        out = render(args.profile, lang=args.lang, export_pdf=args.export == "pdf", template=args.template)
+        out = render(
+            args.profile,
+            lang=args.lang,
+            export_pdf=args.export == "pdf",
+            template=args.template,
+        )
     except FileNotFoundError as e:
         print(f"Error: {e}")
         raise SystemExit(1)

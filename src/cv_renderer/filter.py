@@ -22,6 +22,34 @@ def _filter_bullets(
     return (focused + neutral)[:max_n]
 
 
+def _resolve_bullets(
+    override: list[str] | None,
+    bullets: list[Bullet],
+    focus: set[str],
+    deprio: set[str],
+    max_n: int,
+) -> list[str]:
+    if override is not None:
+        return override
+    return _filter_bullets(bullets, focus, deprio, max_n)
+
+
+def _filter_skill_items(items: list[Bullet], focus: set[str], deprio: set[str]) -> list[str]:
+    # Unlike job/project bullets, skill items are short and untagged-by-default:
+    # an item with no tags is generic and always kept, not dropped as "empty subset of deprio".
+    focused: list[str] = []
+    neutral: list[str] = []
+    for item in items:
+        tags = set(item.tags)
+        if tags & focus:
+            focused.append(item.text)
+        elif tags and tags.issubset(deprio):
+            continue
+        else:
+            neutral.append(item.text)
+    return focused + neutral
+
+
 def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict:
     variant = profile.variant
     focus = set(profile.focus_tags)
@@ -31,7 +59,7 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict:
 
     meta = {
         "name": cv.meta.name,
-        "title": _resolve(cv.meta.title, variant),
+        "title": profile.title_override or _resolve(cv.meta.title, variant),
         "location": cv.meta.location,
         "email": cv.meta.email,
         "phone": cv.meta.phone,
@@ -40,18 +68,21 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict:
 
     experience = []
     for job in cv.experience:
-        bullets = _filter_bullets(job.bullets, focus, deprio, max_b)
+        override = profile.experience_overrides.get(job.company)
+        bullets = _resolve_bullets(override, job.bullets, focus, deprio, max_b)
         if not bullets:
             continue
-        experience.append({
-            "company": job.company,
-            "title": _resolve(job.title, variant),
-            "location": job.location,
-            "start": job.start,
-            "end": job.end,
-            "description": job.description,
-            "bullets": bullets,
-        })
+        experience.append(
+            {
+                "company": job.company,
+                "title": _resolve(job.title, variant),
+                "location": job.location,
+                "start": job.start,
+                "end": job.end,
+                "description": job.description,
+                "bullets": bullets,
+            }
+        )
 
     include_tags = focus | {"always"}
     skills = []
@@ -61,7 +92,10 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict:
                 continue
         elif not include_all and not (set(cat.tags) & include_tags):
             continue
-        skills.append({"category": cat.category, "entries": cat.items})
+        entries = _filter_skill_items(cat.items, focus, deprio)
+        if not entries:
+            continue
+        skills.append({"category": cat.category, "entries": entries})
 
     if profile.skill_categories is not None:
         order = {name: i for i, name in enumerate(profile.skill_categories)}
@@ -69,19 +103,22 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict:
 
     projects = []
     for proj in cv.projects:
-        if not include_all and not (set(proj.tags) & focus):
+        override = profile.project_overrides.get(proj.name)
+        if override is None and not include_all and not (set(proj.tags) & focus):
             continue
-        bullets = _filter_bullets(proj.bullets, focus, deprio, max_b)
+        bullets = _resolve_bullets(override, proj.bullets, focus, deprio, max_b)
         if not bullets:
             continue
-        projects.append({
-            "name": proj.name,
-            "subtitle": proj.subtitle,
-            "year": proj.year,
-            "start": proj.start,
-            "end": proj.end,
-            "bullets": bullets,
-        })
+        projects.append(
+            {
+                "name": proj.name,
+                "subtitle": proj.subtitle,
+                "year": proj.year,
+                "start": proj.start,
+                "end": proj.end,
+                "bullets": bullets,
+            }
+        )
 
     education = [
         {
@@ -96,7 +133,7 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict:
 
     return {
         "meta": meta,
-        "about": _resolve(cv.about, variant),
+        "about": profile.about_override or _resolve(cv.about, variant),
         "experience": experience,
         "skills": skills,
         "projects": projects,

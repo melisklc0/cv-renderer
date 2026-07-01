@@ -8,9 +8,7 @@ from cv_renderer.models import CVData, Profile
 
 _ROOT = Path(__file__).parent.parent.parent
 load_dotenv(_ROOT / ".env")
-_USER_DATA = (
-    Path(os.environ["CV_DATA_DIR"]) if "CV_DATA_DIR" in os.environ else _ROOT / "user-data"
-)
+_USER_DATA = Path(os.environ["CV_DATA_DIR"]) if "CV_DATA_DIR" in os.environ else _ROOT / "user-data"
 
 
 def _user_data_root() -> Path:

@@ -67,7 +67,14 @@ skills:
     items: "PostgreSQL, dbt Core, ..."
   - category: AI and LLM Systems
     tags: [ai, llm]
-    items: "LangChain, LangGraph, ..."
+    # items can also be a list of {text, tags} to filter within a category,
+    # not just across categories — useful when a category mixes core tools
+    # (keep for every profile) with niche ones (only relevant to some jobs).
+    items:
+      - text: LangChain
+        tags: [ai]
+      - text: LangGraph
+        tags: [ai]
   - category: ML and Evaluation
     tags: [ml, ai]
     items: "PyTorch, scikit-learn, ..."

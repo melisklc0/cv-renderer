@@ -67,6 +67,26 @@ max_bullets_per_job: 4
 
 The render engine merges the two, feeds the result into a Jinja2 template, and produces the output. The visual design never changes — only the content does.
 
+A profile can also override the headline title and summary paragraph without touching the base data file — useful for a one-off application pitch that doesn't belong in the single source of truth:
+
+```yaml
+title_override: Veri Mühendisi
+about_override: |
+  A summary written for this specific application.
+```
+
+When omitted, the title/summary fall back to the `variant` lookup in `base_<lang>.yaml` as usual.
+
+Tag filtering can only pick among bullets that already exist, and can only include or exclude a whole job/project by its tags — it can't reframe a real accomplishment around a different angle, and it can't partially include something whose tags don't match. `experience_overrides` / `project_overrides` replace one entry's bullets outright, keyed by `company` / project `name`:
+
+```yaml
+project_overrides:
+  Agentic RAG:
+    - "Isolated SQL access behind an MCP subprocess so agent code never touches database credentials directly."
+```
+
+An override also forces that job/project into the CV even if its tags would normally get it filtered out entirely — useful when a project's primary tag is `ai` but one real piece of it (e.g. a security boundary around a database) is genuinely relevant to a data-focused application. If nothing in an entry is honestly relevant, skip the override and let tag filtering drop it as usual — don't force it in.
+
 
 ## Tag System
 
@@ -81,6 +101,20 @@ The render engine merges the two, feeds the result into a Jinja2 template, and p
 | `always` | Appears in every profile regardless of focus |
 
 Tags are the only interface between data and profiles. A bullet that covers both FastAPI and PostgreSQL gets `[backend, data]`, not one or the other.
+
+Skill categories can be filtered the same way at two levels — which categories show (`skill_categories` in the profile, or the category's own `tags`), and which items inside a shown category show:
+
+```yaml
+- category: AI and LLM Systems
+  tags: [ai, llm]
+  items:
+    - text: LangChain
+      tags: [ai]
+    - text: Prompt Engineering
+      tags: [ai, llm]
+```
+
+An item with no `tags` is generic and always shown once its category is included. An item whose tags are entirely inside `deprioritize_tags` is dropped; a category left with zero items after filtering is dropped too. The legacy shorthand — `items: "Python, FastAPI, ..."` — still works and treats every item as untagged.
 
 
 ## Profiles
