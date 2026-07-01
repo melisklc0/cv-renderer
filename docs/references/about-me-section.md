@@ -48,16 +48,16 @@ An honours graduate with a bachelor's degree in commerce and finance keen to gai
 
 **Sales representative**
 
-I currently hold the position of floor sales assistant for a reputable car dealership just outside the city. My outgoing personality and dedication to customer satisfaction have helped me increase our company's sales revenues steadily over a three-year period. Having qualified as a mechanic's apprentice, I gained in-depth knowledge of automobiles, which has been invaluable when assuring my customers of quality purchases. I hope my love for cars and passion for customer satisfaction lead me to senior management roles in the car-sales industry.
+Floor sales assistant for a reputable car dealership just outside the city. Outgoing and dedicated to customer satisfaction, driving steady increases in company sales revenue over a three-year period. Brings in-depth knowledge of automobiles from prior work as a mechanic's apprentice, invaluable for assuring customers of quality purchases. Aims to bring this passion for cars and customer satisfaction into senior management roles in the car-sales industry.
 
 **Office manager**
 
-Marie is a highly competent office administrator with five years of experience providing administrative support for the office manager. Along with her methodical organizational skills, she is a proficient user of scheduling and communication software tools. Marie is confident that her experience to date and her enthusiasm for excelling in administration would make her an excellent candidate for office management roles.
+Highly competent office administrator with five years of experience providing administrative support for the office manager. Methodical and organised, with proficiency across scheduling and communication software tools. Brings a track record of reliable execution and enthusiasm for excelling in administration to office management roles.
 
 **Advertising agent**
 
-Hello, my name is Adam, I'm presently a multimedia manager in a small city-centre design house. I studied design and marketing for four years and, after a short graphic design internship, was appointed to my current role. My passion is creating successful advertising strategies and developing winning brand campaigns for clients. My ambition has always been to secure a role in a prominent advertising agency and complete work for the biggest brand names.
+Multimedia manager at a small city-centre design house, following four years of design and marketing study and a graphic design internship. Focused on creating successful advertising strategies and developing winning brand campaigns for clients. Aims to secure a role at a prominent advertising agency, working with leading brand names.
 
 **Career change**
 
-Having enjoyed the role as an English teacher for the past ten years, I am looking to expand my talents into new areas. I focus on using my knowledge and experience to begin a career in copywriting and translation for a multinational marketing firm. In addition to my degree in English, I am a versatile linguist and speak fluent Spanish, and I am willing to relocate for the ideal job.
+English teacher for the past ten years, now expanding into copywriting and translation for a multinational marketing firm. Brings a degree in English and fluency in Spanish alongside a strong command of language. Open to relocation for the right opportunity.
