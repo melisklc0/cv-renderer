@@ -120,6 +120,10 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict:
             }
         )
 
+    if profile.project_order is not None:
+        order = {name: i for i, name in enumerate(profile.project_order)}
+        projects.sort(key=lambda p: order.get(p["name"], 999))
+
     education = [
         {
             "institution": e.institution,

@@ -87,6 +87,12 @@ project_overrides:
 
 An override also forces that job/project into the CV even if its tags would normally get it filtered out entirely — useful when a project's primary tag is `ai` but one real piece of it (e.g. a security boundary around a database) is genuinely relevant to a data-focused application. If nothing in an entry is honestly relevant, skip the override and let tag filtering drop it as usual — don't force it in.
 
+`project_order` reorders the rendered projects by name, the same way `skill_categories` reorders skill categories — useful when the most relevant project for an application isn't the first one in the base data:
+
+```yaml
+project_order: [Analytics Copilot, Agentic RAG]
+```
+
 
 ## Tag System
 

@@ -104,6 +104,7 @@ class Profile(BaseModel):
     about_override: str | None = None
     experience_overrides: dict[str, list[str]] = {}  # keyed by ExperienceEntry.company
     project_overrides: dict[str, list[str]] = {}  # keyed by Project.name
+    project_order: list[str] | None = None  # keyed by Project.name; None = base data order
 
     # Tag-based selection, used wherever the above overrides don't apply.
     focus_tags: list[str] = []
