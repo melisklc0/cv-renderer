@@ -93,6 +93,16 @@ An override also forces that job/project into the CV even if its tags would norm
 project_order: [Analytics Copilot, Agentic RAG]
 ```
 
+`skill_categories` can only select and reorder categories that already exist in the base data — it can't reshape them. `skill_overrides` regroups skill items into new, per-application category labels (e.g. splitting one base category into two), pulling item text from anywhere in the base data's skills regardless of original category, without touching the base file — so `general` and every other profile still see the base data's original grouping:
+
+```yaml
+skill_overrides:
+  Data Warehousing: [Data Modeling, ETL/ELT, Data Profiling]
+  Data Tools: [dbt Core, PostgreSQL, Apache Superset]
+```
+
+When set, `skill_overrides` replaces the skills section entirely — it ignores `skill_categories` and tag-based filtering.
+
 
 ## Tag System
 

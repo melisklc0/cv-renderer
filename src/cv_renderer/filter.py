@@ -84,22 +84,28 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict:
             }
         )
 
-    include_tags = focus | {"always"}
-    skills = []
-    for cat in cv.skills:
-        if profile.skill_categories is not None:
-            if cat.category not in profile.skill_categories:
+    if profile.skill_overrides is not None:
+        skills = [
+            {"category": category, "entries": entries}
+            for category, entries in profile.skill_overrides.items()
+        ]
+    else:
+        include_tags = focus | {"always"}
+        skills = []
+        for cat in cv.skills:
+            if profile.skill_categories is not None:
+                if cat.category not in profile.skill_categories:
+                    continue
+            elif not include_all and not (set(cat.tags) & include_tags):
                 continue
-        elif not include_all and not (set(cat.tags) & include_tags):
-            continue
-        entries = _filter_skill_items(cat.items, focus, deprio)
-        if not entries:
-            continue
-        skills.append({"category": cat.category, "entries": entries})
+            entries = _filter_skill_items(cat.items, focus, deprio)
+            if not entries:
+                continue
+            skills.append({"category": cat.category, "entries": entries})
 
-    if profile.skill_categories is not None:
-        order = {name: i for i, name in enumerate(profile.skill_categories)}
-        skills.sort(key=lambda s: order.get(s["category"], 999))
+        if profile.skill_categories is not None:
+            order = {name: i for i, name in enumerate(profile.skill_categories)}
+            skills.sort(key=lambda s: order.get(s["category"], 999))
 
     projects = []
     for proj in cv.projects:

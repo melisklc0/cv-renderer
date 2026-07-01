@@ -105,6 +105,13 @@ class Profile(BaseModel):
     experience_overrides: dict[str, list[str]] = {}  # keyed by ExperienceEntry.company
     project_overrides: dict[str, list[str]] = {}  # keyed by Project.name
     project_order: list[str] | None = None  # keyed by Project.name; None = base data order
+    # Regroups skill items into custom, per-application category labels — keyed by the
+    # new category name, valued by a list of item texts pulled from anywhere in the base
+    # data's skills (regardless of their original category). Replaces skill_categories
+    # entirely when set: this is for reshaping the grouping itself (e.g. splitting one
+    # base category into two for this application), which tag-based selection can't do
+    # without changing the base data for every profile.
+    skill_overrides: dict[str, list[str]] | None = None
 
     # Tag-based selection, used wherever the above overrides don't apply.
     focus_tags: list[str] = []

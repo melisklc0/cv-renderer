@@ -1,0 +1,49 @@
+name: Spotify - Backend Engineer
+description: Tailored for a specific job posting — demonstrates every override field a company-specific profile can use
+variant: data
+lang: en
+
+# Overrides the headline and summary shown in the base data's `variant` lookup.
+# Write these directly for this application; don't translate from the other
+# language file, and don't invent facts — same rules as any other CV content.
+# The summary follows the title -> skills & accomplishments -> career goals
+# structure in docs/references/about-me-section.md.
+# Never name the target company here (or anywhere else in the CV content) —
+# that belongs in a cover letter, not a resume that might get reused or shared.
+title_override: Backend Engineer
+about_override: |
+  Backend Engineer with production experience building FastAPI services on top of governed data layers. Shipped a 109-model dbt warehouse layer, added automated data-correctness tests that catch reporting errors at the source, and supported BI reporting through Apache Superset. Looking to bring that same reliability focus to a data platform team.
+
+# Replaces an entry's tag-filtered bullets outright — use when a real
+# accomplishment needs reframing around a different angle than its default
+# bullets take (see filter.py::apply_profile). Keyed by ExperienceEntry.company.
+# An override also forces the entry into the CV even if its own tags would
+# otherwise exclude it entirely — only do this when something in it is
+# genuinely relevant; if nothing is, leave it out and let tag filtering drop it.
+experience_overrides:
+  Company Name:
+    - "Rewritten bullet #1 for this application, angled at what this employer cares about."
+    - "Rewritten bullet #2, still real, still XYZ-formatted, still no invented numbers."
+
+# Same idea as experience_overrides, but keyed by Project.name.
+project_overrides:
+  Project Name:
+    - "Rewritten project bullet emphasizing the angle relevant to this posting."
+
+# Reorders rendered projects by name — the most relevant project for this
+# application isn't always the first one in the base data. Same mechanism as
+# skill_categories below, just for projects instead of skill categories.
+project_order: [Project Name]
+
+focus_tags: [data, backend]
+deprioritize_tags: [ai, llm, ml]
+max_bullets_per_job: 4
+sections: [experience, education, skills, projects, additional]
+
+# Filters and orders which skill categories render. Skill items can also carry
+# their own tags (see base_en.yaml's "AI and LLM Systems" category) so a single
+# category can show a different subset of items per profile.
+skill_categories:
+  - Data Engineering
+  - Backend and API
+  - Infra and DevOps
