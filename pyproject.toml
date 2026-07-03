@@ -15,6 +15,7 @@ dependencies = [
 dev = [
     "ruff>=0.9",
     "playwright>=1.40",
+    "pytest>=8",
 ]
 
 [build-system]
