@@ -3,10 +3,18 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import yaml
 
 from cv_renderer import loader
+
+JsonDict = dict[str, Any]
+# (text, line, context) — one free-text field worth checking against wording rules.
+TextItem = tuple[Any, "int | None", str]
+# (tags, line, context, is_bullet) — one tag-bearing object. is_bullet marks bullets
+# specifically, since only bullets are required to carry at least one tag.
+TaggedItem = tuple["list[str] | None", "int | None", str, bool]
 
 _LEVEL_ORDER = {"ERROR": 0, "WARNING": 1, "INFO": 2}
 
@@ -42,7 +50,7 @@ class _LineLoader(yaml.SafeLoader):
     pass
 
 
-def _construct_mapping(loader_: _LineLoader, node: yaml.MappingNode) -> dict:
+def _construct_mapping(loader_: yaml.SafeLoader, node: yaml.MappingNode) -> JsonDict:
     loader_.flatten_mapping(node)
     mapping = dict(loader_.construct_pairs(node))
     mapping["__line__"] = node.start_mark.line + 1
@@ -52,9 +60,10 @@ def _construct_mapping(loader_: _LineLoader, node: yaml.MappingNode) -> dict:
 _LineLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_mapping)
 
 
-def load_yaml_with_lines(path: Path) -> dict:
+def load_yaml_with_lines(path: Path) -> JsonDict:
     with open(path, encoding="utf-8") as f:
-        return yaml.load(f, Loader=_LineLoader)
+        data: JsonDict = yaml.load(f, Loader=_LineLoader)
+    return data
 
 
 def _rel(path: Path) -> str:
@@ -64,13 +73,161 @@ def _rel(path: Path) -> str:
         return path.name
 
 
-# --- ERROR rules ---------------------------------------------------------------
+# --- collecting checkable content ----------------------------------------------
+# Every rule below operates on plain (value, line, context) tuples gathered by the
+# functions in this section, instead of walking the raw YAML tree itself. This
+# keeps each rule a single flat loop and means a rule written for base CV data
+# automatically also applies to profile override content.
 
 
-def _check_tags(raw: dict, filename: str, vocab: set[str]) -> list[Finding]:
+def _iter_tagged_items(raw: JsonDict) -> list[TaggedItem]:
+    items: list[TaggedItem] = []
+
+    for job in raw.get("experience", []):
+        company = job.get("company")
+        items.append((job.get("tags", []), job.get("__line__"), f"experience[{company}]", False))
+        for bullet in job.get("bullets", []):
+            items.append(
+                (
+                    bullet.get("tags", []),
+                    bullet.get("__line__"),
+                    f"bullet in experience[{company}]",
+                    True,
+                )
+            )
+
+    for edu in raw.get("education", []):
+        items.append(
+            (
+                edu.get("tags", []),
+                edu.get("__line__"),
+                f"education[{edu.get('institution')}]",
+                False,
+            )
+        )
+
+    for cat in raw.get("skills", []):
+        category = cat.get("category")
+        items.append(
+            (cat.get("tags", []), cat.get("__line__"), f"skill category '{category}'", False)
+        )
+        skill_items = cat.get("items")
+        if isinstance(skill_items, list):
+            for item in skill_items:
+                if isinstance(item, dict):
+                    items.append(
+                        (
+                            item.get("tags", []),
+                            item.get("__line__"),
+                            f"skill item '{item.get('text')}' in '{category}'",
+                            False,
+                        )
+                    )
+
+    for proj in raw.get("projects", []):
+        name = proj.get("name")
+        items.append((proj.get("tags", []), proj.get("__line__"), f"project '{name}'", False))
+        for bullet in proj.get("bullets", []):
+            items.append(
+                (
+                    bullet.get("tags", []),
+                    bullet.get("__line__"),
+                    f"bullet in project '{name}'",
+                    True,
+                )
+            )
+
+    return items
+
+
+def _iter_cv_texts(raw_cv: JsonDict) -> list[TextItem]:
+    """Every free-text field in a base CV file worth checking against wording rules."""
+    texts: list[TextItem] = []
+
+    about = raw_cv.get("about", {}) or {}
+    about_line = about.get("__line__")
+    for variant, text in about.items():
+        if variant != "__line__":
+            texts.append((text, about_line, f"about.{variant}"))
+
+    for job in raw_cv.get("experience", []):
+        company = job.get("company")
+        for variant, text in (job.get("title") or {}).items():
+            if variant != "__line__":
+                texts.append((text, job.get("__line__"), f"experience[{company}].title.{variant}"))
+        texts.append(
+            (job.get("description", ""), job.get("__line__"), f"experience[{company}].description")
+        )
+        for bullet in job.get("bullets", []):
+            texts.append(
+                (bullet.get("text", ""), bullet.get("__line__"), f"bullet in experience[{company}]")
+            )
+
+    for proj in raw_cv.get("projects", []):
+        name = proj.get("name")
+        for bullet in proj.get("bullets", []):
+            texts.append(
+                (bullet.get("text", ""), bullet.get("__line__"), f"bullet in project '{name}'")
+            )
+
+    return texts
+
+
+def _iter_cv_bullet_texts(raw_cv: JsonDict) -> list[TextItem]:
+    """Just the bullets (experience + projects) — narrower than _iter_cv_texts,
+    used by style rules that only apply to accomplishment bullets, not prose."""
+    texts: list[TextItem] = []
+    for job in raw_cv.get("experience", []):
+        for bullet in job.get("bullets", []):
+            texts.append(
+                (
+                    bullet.get("text", ""),
+                    bullet.get("__line__"),
+                    f"bullet in experience[{job.get('company')}]",
+                )
+            )
+    for proj in raw_cv.get("projects", []):
+        for bullet in proj.get("bullets", []):
+            texts.append(
+                (
+                    bullet.get("text", ""),
+                    bullet.get("__line__"),
+                    f"bullet in project '{proj.get('name')}'",
+                )
+            )
+    return texts
+
+
+def _iter_profile_texts(raw_profile: JsonDict) -> list[TextItem]:
+    """Every piece of real CV content a profile writes itself — overrides are
+    hand-written content, not tag-filtered selections, so they're subject to the
+    same wording rules as base_en.yaml/base_tr.yaml."""
+    line = raw_profile.get("__line__")
+    texts: list[TextItem] = []
+
+    if raw_profile.get("about_override") is not None:
+        texts.append((raw_profile["about_override"], line, "about_override"))
+    if raw_profile.get("title_override") is not None:
+        texts.append((raw_profile["title_override"], line, "title_override"))
+
+    for key in ("experience_overrides", "project_overrides"):
+        for entry_name, bullets in (raw_profile.get(key) or {}).items():
+            if entry_name == "__line__":
+                continue
+            for bullet_text in bullets or []:
+                texts.append((bullet_text, line, f"{key}['{entry_name}']"))
+
+    return texts
+
+
+# --- rule appliers ---------------------------------------------------------------
+# Each of these is the one place a given rule's logic lives, applied uniformly to
+# whatever (tags/text, line, context) items the collectors above hand it.
+
+
+def _apply_tag_rules(items: list[TaggedItem], filename: str, vocab: set[str]) -> list[Finding]:
     findings: list[Finding] = []
-
-    def check(tags, line, context):
+    for tags, line, context, is_bullet in items:
         for tag in tags or []:
             if tag not in vocab:
                 findings.append(
@@ -82,48 +239,98 @@ def _check_tags(raw: dict, filename: str, vocab: set[str]) -> list[Finding]:
                         f"Unknown tag '{tag}' in {context} (not in tags vocabulary)",
                     )
                 )
-
-    def check_bullet(bullet, context):
-        tags = bullet.get("tags", [])
-        line = bullet.get("__line__")
-        check(tags, line, context)
-        if tags == []:
+        if is_bullet and not tags:
             findings.append(
                 Finding("ERROR", filename, line, "TAG-EMPTY", f"{context} has empty tags: []")
             )
-
-    for job in raw.get("experience", []):
-        company = job.get("company")
-        check(job.get("tags", []), job.get("__line__"), f"experience[{company}]")
-        for bullet in job.get("bullets", []):
-            check_bullet(bullet, f"bullet in experience[{company}]")
-
-    for edu in raw.get("education", []):
-        check(edu.get("tags", []), edu.get("__line__"), f"education[{edu.get('institution')}]")
-
-    for cat in raw.get("skills", []):
-        category = cat.get("category")
-        check(cat.get("tags", []), cat.get("__line__"), f"skill category '{category}'")
-        items = cat.get("items")
-        if isinstance(items, list):
-            for item in items:
-                if isinstance(item, dict):
-                    check(
-                        item.get("tags", []),
-                        item.get("__line__"),
-                        f"skill item '{item.get('text')}' in '{category}'",
-                    )
-
-    for proj in raw.get("projects", []):
-        name = proj.get("name")
-        check(proj.get("tags", []), proj.get("__line__"), f"project '{name}'")
-        for bullet in proj.get("bullets", []):
-            check_bullet(bullet, f"bullet in project '{name}'")
-
     return findings
 
 
-def _parse_date(value) -> tuple[int, int] | None:
+def _apply_backed_rule(items: list[TextItem], filename: str) -> list[Finding]:
+    findings: list[Finding] = []
+    for text, line, context in items:
+        if not isinstance(text, str):
+            continue
+        for m in _BACKED_RE.finditer(text):
+            findings.append(
+                Finding(
+                    "WARNING",
+                    filename,
+                    line,
+                    "SPELL-BACKEND",
+                    f'"{m.group(0)}" in {context} — use "{m.group(1)}-backend" instead',
+                )
+            )
+    return findings
+
+
+def _apply_style_rules(items: list[TextItem], filename: str, lang: str) -> list[Finding]:
+    findings: list[Finding] = []
+    pronoun_re = _PRONOUN_RE.get(lang, _PRONOUN_RE["en"])
+    for text, line, context in items:
+        if not isinstance(text, str) or not text:
+            continue
+        if _PASSIVE_RE.search(text):
+            findings.append(
+                Finding(
+                    "INFO",
+                    filename,
+                    line,
+                    "STYLE-PASSIVE",
+                    f'Possible passive voice in {context}: "{text}"',
+                )
+            )
+        if pronoun_re.search(text):
+            findings.append(
+                Finding(
+                    "INFO",
+                    filename,
+                    line,
+                    "STYLE-PRONOUN",
+                    f'Personal pronoun in {context}: "{text}"',
+                )
+            )
+        first_word = text.strip().split(" ", 1)[0].lower().strip(".,") if text.strip() else ""
+        if first_word in _WEAK_LEADS:
+            findings.append(
+                Finding(
+                    "INFO",
+                    filename,
+                    line,
+                    "STYLE-WEAK-LEAD",
+                    f"Weak opening verb '{first_word}' in {context}: \"{text}\"",
+                )
+            )
+    return findings
+
+
+# --- per-file rule entrypoints ----------------------------------------------------
+# Thin, named wrappers around the appliers above — kept separate so each rule's
+# scope (base CV data vs. profile overrides) stays explicit and independently
+# unit-testable, even though the underlying logic is shared.
+
+
+def _check_tags(raw: JsonDict, filename: str, vocab: set[str]) -> list[Finding]:
+    return _apply_tag_rules(_iter_tagged_items(raw), filename, vocab)
+
+
+def _check_spelling(raw_en_cv: JsonDict, filename: str) -> list[Finding]:
+    return _apply_backed_rule(_iter_cv_texts(raw_en_cv), filename)
+
+
+def _check_profile_spelling(raw_profile: JsonDict, filename: str) -> list[Finding]:
+    return _apply_backed_rule(_iter_profile_texts(raw_profile), filename)
+
+
+def _check_style(raw_cv: JsonDict, filename: str, lang: str) -> list[Finding]:
+    return _apply_style_rules(_iter_cv_bullet_texts(raw_cv), filename, lang)
+
+
+def _check_profile_style(raw_profile: JsonDict, filename: str, lang: str) -> list[Finding]:
+    return _apply_style_rules(_iter_profile_texts(raw_profile), filename, lang)
+
+
+def _parse_date(value: Any) -> tuple[int, int] | None:
     s = str(value).strip().lower()
     if s == "present":
         return (9999, 12)
@@ -139,7 +346,7 @@ def _parse_date(value) -> tuple[int, int] | None:
         return None
 
 
-def _check_date_order(raw: dict, filename: str) -> list[Finding]:
+def _check_date_order(raw: JsonDict, filename: str) -> list[Finding]:
     findings: list[Finding] = []
     for section, label_field in (("experience", "company"), ("education", "institution")):
         for entry in raw.get(section, []):
@@ -159,7 +366,9 @@ def _check_date_order(raw: dict, filename: str) -> list[Finding]:
     return findings
 
 
-def _check_profile_focus_tags(raw_profile: dict, filename: str, vocab: set[str]) -> list[Finding]:
+def _check_profile_focus_tags(
+    raw_profile: JsonDict, filename: str, vocab: set[str]
+) -> list[Finding]:
     findings: list[Finding] = []
     line = raw_profile.get("__line__")
     focus = raw_profile.get("focus_tags") or []
@@ -191,7 +400,7 @@ def _check_profile_focus_tags(raw_profile: dict, filename: str, vocab: set[str])
 
 
 def _check_profile_overrides(
-    raw_profile: dict, filename: str, companies: set[str], project_names: set[str]
+    raw_profile: JsonDict, filename: str, companies: set[str], project_names: set[str]
 ) -> list[Finding]:
     findings: list[Finding] = []
     line = raw_profile.get("__line__")
@@ -229,52 +438,7 @@ def _check_profile_overrides(
     return findings
 
 
-# --- WARNING rules ---------------------------------------------------------------
-
-
-def _check_spelling(raw_en_cv: dict, filename: str) -> list[Finding]:
-    findings: list[Finding] = []
-
-    def scan(text, line, context):
-        if not isinstance(text, str):
-            return
-        for m in _BACKED_RE.finditer(text):
-            findings.append(
-                Finding(
-                    "WARNING",
-                    filename,
-                    line,
-                    "SPELL-BACKEND",
-                    f'"{m.group(0)}" in {context} — use "{m.group(1)}-backend" instead',
-                )
-            )
-
-    about = raw_en_cv.get("about", {}) or {}
-    about_line = about.get("__line__")
-    for variant, text in about.items():
-        if variant == "__line__":
-            continue
-        scan(text, about_line, f"about.{variant}")
-
-    for job in raw_en_cv.get("experience", []):
-        company = job.get("company")
-        for variant, text in (job.get("title") or {}).items():
-            if variant == "__line__":
-                continue
-            scan(text, job.get("__line__"), f"experience[{company}].title.{variant}")
-        scan(job.get("description", ""), job.get("__line__"), f"experience[{company}].description")
-        for bullet in job.get("bullets", []):
-            scan(bullet.get("text", ""), bullet.get("__line__"), f"bullet in experience[{company}]")
-
-    for proj in raw_en_cv.get("projects", []):
-        name = proj.get("name")
-        for bullet in proj.get("bullets", []):
-            scan(bullet.get("text", ""), bullet.get("__line__"), f"bullet in project '{name}'")
-
-    return findings
-
-
-def _check_parity(raw_en: dict, raw_tr: dict, file_en: str, file_tr: str) -> list[Finding]:
+def _check_parity(raw_en: JsonDict, raw_tr: JsonDict, file_en: str, file_tr: str) -> list[Finding]:
     findings: list[Finding] = []
 
     exp_en, exp_tr = raw_en.get("experience", []), raw_tr.get("experience", [])
@@ -344,58 +508,6 @@ def _check_parity(raw_en: dict, raw_tr: dict, file_en: str, file_tr: str) -> lis
     return findings
 
 
-# --- INFO rules ------------------------------------------------------------------
-
-
-def _check_style(raw_cv: dict, filename: str, lang: str) -> list[Finding]:
-    findings: list[Finding] = []
-    pronoun_re = _PRONOUN_RE.get(lang, _PRONOUN_RE["en"])
-
-    def scan_bullet(bullet, context):
-        text = bullet.get("text", "") or ""
-        line = bullet.get("__line__")
-        if _PASSIVE_RE.search(text):
-            findings.append(
-                Finding(
-                    "INFO",
-                    filename,
-                    line,
-                    "STYLE-PASSIVE",
-                    f'Possible passive voice in {context}: "{text}"',
-                )
-            )
-        if pronoun_re.search(text):
-            findings.append(
-                Finding(
-                    "INFO",
-                    filename,
-                    line,
-                    "STYLE-PRONOUN",
-                    f'Personal pronoun in {context}: "{text}"',
-                )
-            )
-        first_word = text.strip().split(" ", 1)[0].lower().strip(".,") if text.strip() else ""
-        if first_word in _WEAK_LEADS:
-            findings.append(
-                Finding(
-                    "INFO",
-                    filename,
-                    line,
-                    "STYLE-WEAK-LEAD",
-                    f"Weak opening verb '{first_word}' in {context}: \"{text}\"",
-                )
-            )
-
-    for job in raw_cv.get("experience", []):
-        for bullet in job.get("bullets", []):
-            scan_bullet(bullet, f"bullet in experience[{job.get('company')}]")
-    for proj in raw_cv.get("projects", []):
-        for bullet in proj.get("bullets", []):
-            scan_bullet(bullet, f"bullet in project '{proj.get('name')}'")
-
-    return findings
-
-
 # --- entrypoint ------------------------------------------------------------------
 
 
@@ -403,7 +515,7 @@ def lint(profile_name: str | None = None) -> list[Finding]:
     findings: list[Finding] = []
     vocab = set(loader.load_tags().keys())
 
-    raw_by_lang: dict[str, tuple[dict, str]] = {}
+    raw_by_lang: dict[str, tuple[JsonDict, str]] = {}
     for lang in ("en", "tr"):
         path = loader._user_data_root() / "data" / f"base_{lang}.yaml"
         raw = load_yaml_with_lines(path)
@@ -446,6 +558,9 @@ def lint(profile_name: str | None = None) -> list[Finding]:
             companies.get(profile_lang, set()),
             project_names.get(profile_lang, set()),
         )
+        if profile_lang == "en":
+            findings += _check_profile_spelling(raw_profile, filename)
+        findings += _check_profile_style(raw_profile, filename, profile_lang)
 
     return findings
 

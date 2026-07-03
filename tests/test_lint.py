@@ -182,6 +182,56 @@ def test_check_spelling_ignores_correct_backend_usage():
     assert findings == []
 
 
+def test_check_spelling_ignores_standalone_verb_usage():
+    # "backed by X" (no hyphen) is a normal, correct verb phrase — not the
+    # X-backed/X-backend compound-modifier mistake the rule targets.
+    raw_en = {
+        "about": {"default": "Retry logic, backed by a read-only database role.", "__line__": 1},
+        "experience": [],
+        "projects": [],
+    }
+    findings = lint._check_spelling(raw_en, "base_en.yaml")
+    assert findings == []
+
+
+def test_check_profile_spelling_scans_experience_overrides():
+    raw_profile = {
+        "__line__": 1,
+        "experience_overrides": {"Acme": ["Shipped a SQL-backed reporting pipeline."]},
+    }
+    findings = lint._check_profile_spelling(raw_profile, "profile.yaml")
+    assert len(findings) == 1
+    assert "SQL-backend" in findings[0].message
+
+
+def test_check_profile_spelling_scans_about_and_title_override():
+    raw_profile = {
+        "__line__": 1,
+        "about_override": "FastAPI-backed services.",
+        "title_override": "LLM-backed Engineer",
+    }
+    findings = lint._check_profile_spelling(raw_profile, "profile.yaml")
+    assert len(findings) == 2
+
+
+def test_check_profile_spelling_ignores_standalone_verb_usage():
+    raw_profile = {
+        "__line__": 1,
+        "experience_overrides": {"Acme": ["Retry logic, backed by a read-only database role."]},
+    }
+    findings = lint._check_profile_spelling(raw_profile, "profile.yaml")
+    assert findings == []
+
+
+def test_check_profile_style_scans_project_overrides():
+    raw_profile = {
+        "__line__": 1,
+        "project_overrides": {"Widget": ["Helped the team ship a feature."]},
+    }
+    findings = lint._check_profile_style(raw_profile, "profile.yaml", "en")
+    assert any(f.rule == "STYLE-WEAK-LEAD" for f in findings)
+
+
 # --- PARITY --------------------------------------------------------------------
 
 
