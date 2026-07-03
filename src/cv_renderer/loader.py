@@ -39,6 +39,14 @@ def load_labels(lang: str = "en") -> dict[str, str]:
         return yaml.safe_load(f)
 
 
+def load_tags() -> dict[str, str]:
+    user_path = _USER_DATA / "tags.yaml"
+    fallback = _ROOT / "examples" / "tags.yaml"
+    path = user_path if user_path.exists() else fallback
+    with open(path, encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
 def load_profile(name: str) -> Profile:
     path = _user_data_root() / "profiles" / f"{name}.yaml"
     if not path.exists():

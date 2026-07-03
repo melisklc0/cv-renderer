@@ -9,6 +9,7 @@ from typing import Callable
 import jinja2
 
 from cv_renderer.filter import apply_profile
+from cv_renderer.lint import format_report, lint
 from cv_renderer.loader import _USER_DATA, load_cv, load_labels, load_profile
 
 _ROOT = Path(__file__).parent.parent.parent
@@ -114,6 +115,7 @@ def main() -> None:
     parser.add_argument("--template", "-t", help="Template name override (e.g. two-column)")
     parser.add_argument("--export", choices=["pdf"], help="Also export to PDF")
     parser.add_argument("--list", action="store_true", help="List available profiles")
+    parser.add_argument("--lint", action="store_true", help="Validate CV data without rendering")
     args = parser.parse_args()
 
     if args.command == "init":
@@ -125,6 +127,11 @@ def main() -> None:
         for p in sorted(profiles_dir.glob("**/*.yaml")):
             print(p.relative_to(profiles_dir).with_suffix(""))
         return
+
+    if args.lint:
+        findings = lint(args.profile)
+        print(format_report(findings))
+        raise SystemExit(1 if any(f.level == "ERROR" for f in findings) else 0)
 
     if not args.profile:
         parser.error("--profile is required (or use --list to see options)")

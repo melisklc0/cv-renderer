@@ -1,0 +1,7 @@
+ai: LLM systems, agentic workflows, evaluation, RAG
+llm: Model-specific work — prompt engineering, tool use, evals
+ml: Training, distillation, PyTorch, model deployment
+data: dbt, SQL, warehouse, BI dashboards, ETL/ELT
+backend: FastAPI, API design, auth, logging, Redis
+devops: Docker, CI/CD, OTEL, pipeline infrastructure
+always: Items that appear in every profile (education, contact)
