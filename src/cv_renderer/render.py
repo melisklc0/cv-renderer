@@ -18,7 +18,7 @@ _OUT = Path(os.environ["CV_OUT_DIR"]) if "CV_OUT_DIR" in os.environ else _USER_D
 _EXAMPLES = _ROOT / "examples"
 
 
-def _make_fmtdate(months: list[str], present_label: str) -> Callable:
+def _make_fmtdate(months: list[str], present_label: str) -> Callable[[str | int], str]:
 
     def fmtdate(d: str | int) -> str:
         s = str(d)
@@ -79,8 +79,8 @@ def render(
         context["labels"]["months"], context["labels"]["present"]
     )
 
-    template = env.get_template(f"{profile.template}.html.j2")
-    html = template.render(**context)
+    jinja_template = env.get_template(f"{profile.template}.html.j2")
+    html = jinja_template.render(**context)
 
     out_html = _resolve_out_path(profile_name, cv.meta.name, profile.lang)
     out_html.write_text(html, encoding="utf-8")

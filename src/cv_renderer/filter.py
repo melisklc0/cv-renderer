@@ -1,3 +1,5 @@
+from typing import Any
+
 from cv_renderer.models import Bullet, CVData, Profile
 
 
@@ -50,14 +52,14 @@ def _filter_skill_items(items: list[Bullet], focus: set[str], deprio: set[str]) 
     return focused + neutral
 
 
-def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict:
+def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict[str, Any]:
     variant = profile.variant
     focus = set(profile.focus_tags)
     deprio = set(profile.deprioritize_tags)
     max_b = profile.max_bullets_per_job
     include_all = not focus
 
-    meta = {
+    meta: dict[str, Any] = {
         "name": cv.meta.name,
         "title": profile.title_override or _resolve(cv.meta.title, variant),
         "location": cv.meta.location,
@@ -66,7 +68,7 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict:
         "links": cv.meta.links.model_dump(),
     }
 
-    experience = []
+    experience: list[dict[str, Any]] = []
     for job in cv.experience:
         override = profile.experience_overrides.get(job.company)
         bullets = _resolve_bullets(override, job.bullets, focus, deprio, max_b)
@@ -84,6 +86,7 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict:
             }
         )
 
+    skills: list[dict[str, Any]]
     if profile.skill_overrides is not None:
         skills = [
             {"category": category, "entries": entries}
@@ -107,7 +110,7 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict:
             order = {name: i for i, name in enumerate(profile.skill_categories)}
             skills.sort(key=lambda s: order.get(s["category"], 999))
 
-    projects = []
+    projects: list[dict[str, Any]] = []
     for proj in cv.projects:
         override = profile.project_overrides.get(proj.name)
         if override is None and not include_all and not (set(proj.tags) & focus):
@@ -130,7 +133,7 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict:
         order = {name: i for i, name in enumerate(profile.project_order)}
         projects.sort(key=lambda p: order.get(p["name"], 999))
 
-    education = [
+    education: list[dict[str, Any]] = [
         {
             "institution": e.institution,
             "degree": e.degree,

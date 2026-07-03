@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, field_validator
 
 
@@ -50,12 +52,12 @@ class SkillCategory(BaseModel):
 
     @field_validator("items", mode="before")
     @classmethod
-    def normalize_items(cls, v: str | list) -> list:
+    def normalize_items(cls, v: str | list[dict[str, Any] | str]) -> list[dict[str, Any] | str]:
         # Legacy shorthand: a comma-separated string, all items untagged (always shown).
         if isinstance(v, str):
             return [{"text": item.strip(), "tags": []} for item in v.split(",")]
         # Mixed list: plain strings (untagged) alongside {text, tags} dicts.
-        normalized = []
+        normalized: list[dict[str, Any] | str] = []
         for item in v:
             normalized.append({"text": item, "tags": []} if isinstance(item, str) else item)
         return normalized

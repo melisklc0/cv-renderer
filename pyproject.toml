@@ -16,6 +16,8 @@ dev = [
     "ruff>=0.9",
     "playwright>=1.40",
     "pytest>=8",
+    "mypy>=1.13.0",
+    "types-pyyaml>=6.0",
 ]
 
 [build-system]
@@ -30,3 +32,8 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+ignore_missing_imports = true
