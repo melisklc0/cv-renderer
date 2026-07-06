@@ -20,11 +20,12 @@ def _user_data_root() -> Path:
     if not _USER_DATA.exists():
         raise FileNotFoundError(
             f"CV data directory not found: {_USER_DATA}\n\n"
-            "Option 1 — create a fresh data directory inside the repo:\n"
-            "  uv run python render.py init\n"
+            "Option 1 — create a fresh data directory here:\n"
+            "  cv-renderer init\n"
             "  Then fill in user-data/ with your own information.\n\n"
             "Option 2 — point to an existing data directory:\n"
-            "  Set CV_DATA_DIR in your .env file to the absolute path of your data folder."
+            "  Set the CV_DATA_DIR environment variable (or put CV_DATA_DIR=... in a\n"
+            "  .env file in this directory) to the absolute path of your data folder."
         )
     return _USER_DATA
 
@@ -59,7 +60,7 @@ def load_profile(name: str) -> Profile:
     if not path.exists():
         raise FileNotFoundError(
             f"Profile '{name}' not found at {path}\n"
-            "Run 'uv run python render.py --list' to see available profiles."
+            "Run 'cv-renderer --list' to see available profiles."
         )
     with open(path, encoding="utf-8") as f:
         raw = yaml.safe_load(f)

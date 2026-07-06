@@ -104,7 +104,7 @@ def init() -> None:
     shutil.copytree(_EXAMPLES, _USER_DATA)
     print(f"Created {_USER_DATA} from examples/")
     print("Fill in your information, then run:")
-    print("  uv run python render.py --profile general")
+    print("  cv-renderer --profile general")
 
 
 def main() -> None:

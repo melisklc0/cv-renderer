@@ -1,6 +1,6 @@
 [project]
 name = "cv-renderer"
-version = "0.1.0"
+version = "0.1.1"
 description = "Profile-driven CV renderer: one YAML source of truth, tag-filtered tailored profiles, HTML/PDF export, content lint"
 readme = "README.md"
 license = "Apache-2.0"
