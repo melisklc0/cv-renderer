@@ -2,8 +2,9 @@
 
 > One YAML file. Multiple tailored CVs. One command per application.
 
+[![CI](https://github.com/melisklc0/cv-renderer/actions/workflows/ci.yml/badge.svg)](https://github.com/melisklc0/cv-renderer/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.13%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![uv](https://img.shields.io/badge/uv-package%20manager-DE5FE9?logo=astral&logoColor=white)](https://github.com/astral-sh/uv)
 [![Jinja2](https://img.shields.io/badge/templates-Jinja2-B41717?logo=jinja&logoColor=white)](https://jinja.palletsprojects.com/)
 [![Playwright](https://img.shields.io/badge/PDF%20export-Playwright-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev/python/)
@@ -40,6 +41,11 @@ uv run python render.py --profile ai-engineer --lang tr
 
 # List available profiles
 uv run python render.py --list
+
+# Validate your CV data before rendering — tag typos, EN/TR parity,
+# wording issues, broken profile references
+uv run python render.py --lint
+uv run python render.py --lint --profile ai-engineer
 ```
 
 Output lands in `out/`.
@@ -106,6 +112,8 @@ When set, `skill_overrides` replaces the skills section entirely — it ignores 
 
 ## Tag System
 
+The tag vocabulary lives in `user-data/tags.yaml` (falls back to `examples/tags.yaml` if you haven't created one), not hardcoded anywhere — `render.py --lint` validates every tag in your data and profiles against it:
+
 | Tag | Covers |
 |---|---|
 | `ai` | LLM systems, agentic workflows, RAG, evaluation |
@@ -115,6 +123,8 @@ When set, `skill_overrides` replaces the skills section entirely — it ignores 
 | `backend` | FastAPI, API design, Redis |
 | `devops` | Docker, CI/CD, OTEL |
 | `always` | Appears in every profile regardless of focus |
+
+Add a legitimate new tag by adding one line to `user-data/tags.yaml` — no code change needed, and `--lint` still catches genuine typos.
 
 Tags are the only interface between data and profiles. A bullet that covers both FastAPI and PostgreSQL gets `[backend, data]`, not one or the other.
 
@@ -135,11 +145,12 @@ An item with no `tags` is generic and always shown once its category is included
 
 ## Profiles
 
+The examples ship two archetypes and one sample company profile — add as many of each as you need:
+
 | Profile | Purpose |
 |---|---|
 | `general` | Full CV, no filtering |
 | `ai-engineer` | AI/LLM work foregrounded |
-| `data-engineer` | dbt/SQL/pipeline work foregrounded |
 | `companies/spotify` | Per-application, typically agent-generated |
 
 
@@ -152,9 +163,10 @@ Add any language by creating `base_<lang>.yaml` and selecting it with `--lang <l
 
 ## Agentic Workflow
 
-The profile schema is small and structured — an agent can generate a company-specific profile directly from a job description. It reads `user-data/data/base_en.yaml` to see the available tags and bullets, then produces `user-data/profiles/companies/<company>.yaml`. You render it:
+The profile schema is small and structured — an agent can generate a company-specific profile directly from a job description. It reads `user-data/data/base_en.yaml` to see the available tags and bullets, then produces `user-data/profiles/companies/<company>.yaml`. Lint it before rendering — it catches tag typos, wording mistakes, and broken references an agent can introduce:
 
 ```bash
+uv run python render.py --lint --profile companies/spotify
 uv run python render.py --profile companies/spotify --export pdf
 ```
 
@@ -172,11 +184,26 @@ cv-renderer/
 │   │   └── base_<lang>.yaml      ← add more languages as needed
 │   └── profiles/
 ├── templates/main.html.j2        ← Jinja2 template (visual design only)
-├── src/cv_renderer/              ← render engine
+├── src/cv_renderer/              ← render engine (filter, loader, lint, render)
 ├── examples/                     ← scaffold used by `init`
 ├── docs/references/              ← Harvard OCS and XYZ writing guides
+├── tests/                        ← pytest suite (runs against examples/, never user-data/)
 └── out/                          ← rendered outputs (gitignored)
 ```
+
+
+## Development
+
+```bash
+uv sync --dev
+
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy src/cv_renderer/
+uv run pytest
+```
+
+CI runs all four on every push and pull request — see [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 
 ## License
