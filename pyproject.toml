@@ -3,7 +3,7 @@ name = "cv-renderer"
 version = "0.1.0"
 description = "Profile-driven CV renderer: one YAML source of truth, tag-filtered tailored profiles, HTML/PDF export, content lint"
 readme = "README.md"
-license = "MIT"
+license = "Apache-2.0"
 authors = [{ name = "Melis Kilic" }]
 requires-python = ">=3.12"
 keywords = ["cv", "resume", "yaml", "jinja2", "pdf"]
