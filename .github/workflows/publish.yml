@@ -1,0 +1,43 @@
+# Publish to PyPI on every GitHub Release (tag like v0.1.0).
+#
+# Uses PyPI Trusted Publishing (OIDC) — no API token stored in GitHub.
+# One-time setup on pypi.org: Account → Publishing → add a "pending publisher"
+# for project `cv-renderer`, repo `melisklc0/cv-renderer`, workflow `publish.yml`,
+# environment `pypi`.
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Build sdist + wheel
+        run: uv build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import json
 import re
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -330,6 +331,32 @@ def _check_profile_style(raw_profile: JsonDict, filename: str, lang: str) -> lis
     return _apply_style_rules(_iter_profile_texts(raw_profile), filename, lang)
 
 
+def _check_profile_company_name(raw_profile: JsonDict, filename: str) -> list[Finding]:
+    """AGENTS.md CRITICAL rule: a CV outlives one application, so its content must
+    stay company-agnostic — the target company may only appear in the profile's own
+    name/filename, never in rendered content. Company profiles follow the
+    `name: <Company> - <Role>` convention (see examples/profiles/companies/spotify.yaml),
+    so the company is whatever precedes the first " - "."""
+    company = (raw_profile.get("name") or "").split(" - ", 1)[0].strip()
+    if len(company) < 2:
+        return []
+    pattern = re.compile(r"\b" + re.escape(company) + r"\b", re.IGNORECASE)
+    findings: list[Finding] = []
+    for text, line, context in _iter_profile_texts(raw_profile):
+        if isinstance(text, str) and pattern.search(text):
+            findings.append(
+                Finding(
+                    "WARNING",
+                    filename,
+                    line,
+                    "NO-COMPANY-NAME",
+                    f"Target company '{company}' named in {context} — CV content should stay "
+                    "reusable; company-specific wording belongs in a cover letter, not here",
+                )
+            )
+    return findings
+
+
 def _parse_date(value: Any) -> tuple[int, int] | None:
     s = str(value).strip().lower()
     if s == "present":
@@ -561,6 +588,8 @@ def lint(profile_name: str | None = None) -> list[Finding]:
         if profile_lang == "en":
             findings += _check_profile_spelling(raw_profile, filename)
         findings += _check_profile_style(raw_profile, filename, profile_lang)
+        if path.parent.name == "companies":
+            findings += _check_profile_company_name(raw_profile, filename)
 
     return findings
 
@@ -577,3 +606,26 @@ def format_report(findings: list[Finding]) -> str:
     lines.append("")
     lines.append(summary)
     return "\n".join(lines)
+
+
+def format_json(findings: list[Finding]) -> str:
+    """Machine-readable report for external callers (e.g. job-assistant's bridge)."""
+    ordered = sorted(findings, key=lambda f: (f.file, f.line or 0, _LEVEL_ORDER[f.level]))
+    payload = {
+        "findings": [asdict(f) for f in ordered],
+        "summary": {
+            "errors": sum(1 for f in findings if f.level == "ERROR"),
+            "warnings": sum(1 for f in findings if f.level == "WARNING"),
+            "info": sum(1 for f in findings if f.level == "INFO"),
+        },
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+def exit_code(findings: list[Finding]) -> int:
+    """0 = clean, 1 = has errors, 2 = warnings only (info never affects the code)."""
+    if any(f.level == "ERROR" for f in findings):
+        return 1
+    if any(f.level == "WARNING" for f in findings):
+        return 2
+    return 0

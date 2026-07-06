@@ -232,6 +232,98 @@ def test_check_profile_style_scans_project_overrides():
     assert any(f.rule == "STYLE-WEAK-LEAD" for f in findings)
 
 
+# --- NO-COMPANY-NAME ----------------------------------------------------------
+
+
+def test_check_profile_company_name_flags_leak():
+    raw_profile = {
+        "__line__": 1,
+        "name": "Spotify - Backend Engineer",
+        "about_override": "Backend Engineer excited to join Spotify's platform team.",
+    }
+    findings = lint._check_profile_company_name(raw_profile, "profile.yaml")
+    assert len(findings) == 1
+    assert findings[0].rule == "NO-COMPANY-NAME"
+    assert "Spotify" in findings[0].message
+
+
+def test_check_profile_company_name_ignores_when_absent():
+    raw_profile = {
+        "__line__": 1,
+        "name": "Spotify - Backend Engineer",
+        "about_override": "Backend Engineer with production FastAPI experience.",
+    }
+    findings = lint._check_profile_company_name(raw_profile, "profile.yaml")
+    assert findings == []
+
+
+def test_check_profile_company_name_respects_word_boundary():
+    raw_profile = {
+        "__line__": 1,
+        "name": "One - Data Engineer",
+        "about_override": "Helped someone build data pipelines.",
+    }
+    findings = lint._check_profile_company_name(raw_profile, "profile.yaml")
+    assert findings == []
+
+
+def test_check_profile_company_name_skips_short_or_missing_name():
+    raw_profile = {"__line__": 1, "name": "", "about_override": "Anything goes here."}
+    assert lint._check_profile_company_name(raw_profile, "profile.yaml") == []
+
+
+def test_lint_company_name_leak_only_applies_to_companies_dir(tmp_path, monkeypatch):
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    base = """\
+        meta:
+          name: Test
+          title: {default: Engineer}
+          location: City
+          email: a@b.com
+          phone: "+1"
+          links: {}
+        about: {default: "About."}
+        experience: []
+        education: []
+        skills: []
+        projects: []
+        additional: {languages: [], certifications: []}
+        """
+    write_yaml(data_dir, "base_en.yaml", base)
+    write_yaml(data_dir, "base_tr.yaml", base)
+
+    profiles_dir = tmp_path / "profiles"
+    profiles_dir.mkdir()
+    (profiles_dir / "companies").mkdir()
+    write_yaml(
+        profiles_dir / "companies",
+        "acme.yaml",
+        """\
+        name: Acme - Engineer
+        lang: en
+        about_override: "Excited to join Acme."
+        """,
+    )
+    write_yaml(
+        profiles_dir,
+        "acme.yaml",
+        """\
+        name: Acme - Engineer
+        lang: en
+        about_override: "Excited to join Acme."
+        """,
+    )
+
+    monkeypatch.setattr("cv_renderer.loader._USER_DATA", tmp_path)
+
+    company_findings = lint.lint("companies/acme")
+    assert any(f.rule == "NO-COMPANY-NAME" for f in company_findings)
+
+    archetype_findings = lint.lint("acme")
+    assert not any(f.rule == "NO-COMPANY-NAME" for f in archetype_findings)
+
+
 # --- PARITY --------------------------------------------------------------------
 
 

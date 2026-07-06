@@ -6,9 +6,14 @@ from dotenv import load_dotenv
 
 from cv_renderer.models import CVData, Profile
 
-_ROOT = Path(__file__).parent.parent.parent
-load_dotenv(_ROOT / ".env")
-_USER_DATA = Path(os.environ["CV_DATA_DIR"]) if "CV_DATA_DIR" in os.environ else _ROOT / "user-data"
+_PACKAGE = Path(__file__).parent
+_EXAMPLES = _PACKAGE / "examples"
+# .env is looked up in the current working directory (repo root when developing,
+# the caller's project dir when installed as a package).
+load_dotenv()
+_USER_DATA = (
+    Path(os.environ["CV_DATA_DIR"]) if "CV_DATA_DIR" in os.environ else Path.cwd() / "user-data"
+)
 
 
 def _user_data_root() -> Path:
@@ -33,7 +38,7 @@ def load_cv(lang: str = "en") -> CVData:
 
 def load_labels(lang: str = "en") -> dict[str, str]:
     user_path = _USER_DATA / "data" / "labels" / f"{lang}.yaml"
-    fallback = _ROOT / "examples" / "data" / "labels" / f"{lang}.yaml"
+    fallback = _EXAMPLES / "data" / "labels" / f"{lang}.yaml"
     path = user_path if user_path.exists() else fallback
     with open(path, encoding="utf-8") as f:
         data: dict[str, str] = yaml.safe_load(f)
@@ -42,7 +47,7 @@ def load_labels(lang: str = "en") -> dict[str, str]:
 
 def load_tags() -> dict[str, str]:
     user_path = _USER_DATA / "tags.yaml"
-    fallback = _ROOT / "examples" / "tags.yaml"
+    fallback = _EXAMPLES / "tags.yaml"
     path = user_path if user_path.exists() else fallback
     with open(path, encoding="utf-8") as f:
         data: dict[str, str] = yaml.safe_load(f)

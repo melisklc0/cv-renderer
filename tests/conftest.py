@@ -2,9 +2,10 @@ from pathlib import Path
 
 import pytest
 
-from cv_renderer.loader import load_cv, load_labels, load_profile
+from cv_renderer.loader import _EXAMPLES, load_cv, load_labels, load_profile
 
-EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
+# examples/ now ships inside the package (src/cv_renderer/examples).
+EXAMPLES = Path(_EXAMPLES)
 
 
 @pytest.fixture(autouse=True)

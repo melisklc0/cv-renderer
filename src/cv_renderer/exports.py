@@ -4,7 +4,13 @@ from pathlib import Path
 
 
 def export_pdf(html_path: Path) -> Path:
-    from playwright.sync_api import sync_playwright
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError as exc:
+        raise SystemExit(
+            "PDF export needs the 'pdf' extra: pip install 'cv-renderer[pdf]' "
+            "then run: playwright install chromium"
+        ) from exc
 
     pdf_path = html_path.with_suffix(".pdf")
 
