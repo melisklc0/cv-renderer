@@ -2,9 +2,10 @@
 
 > One YAML file. Multiple tailored CVs. One command per application.
 
+[![PyPI](https://img.shields.io/pypi/v/cv-renderer)](https://pypi.org/project/cv-renderer/)
 [![CI](https://github.com/melisklc0/cv-renderer/actions/workflows/ci.yml/badge.svg)](https://github.com/melisklc0/cv-renderer/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.13%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![uv](https://img.shields.io/badge/uv-package%20manager-DE5FE9?logo=astral&logoColor=white)](https://github.com/astral-sh/uv)
 [![Jinja2](https://img.shields.io/badge/templates-Jinja2-B41717?logo=jinja&logoColor=white)](https://jinja.palletsprojects.com/)
 [![Playwright](https://img.shields.io/badge/PDF%20export-Playwright-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev/python/)
@@ -12,43 +13,58 @@
 All your CV content lives once in a YAML file. A **profile** defines what to show and what to emphasize for each application. The render engine produces a clean HTML and optionally a print-ready PDF — one command per role.
 
 
-## Quickstart
+## Install
 
 ```bash
-uv sync
+pip install 'cv-renderer[pdf]'      # or: uv tool install 'cv-renderer[pdf]'
 
 # One-time: download the Chromium binary for PDF export
-uv run playwright install chromium
+playwright install chromium
 
-# Bootstrap your personal data directory
-uv run python render.py init
+# Bootstrap your personal data directory (./user-data)
+cv-renderer init
 ```
 
+The `[pdf]` extra pulls Playwright; skip it if you only need HTML output.
+
+Working from a clone instead? `uv sync --dev`, then every command below runs as
+`uv run cv-renderer ...` (the old `uv run python render.py ...` still works too).
+
 Then fill in `user-data/data/base_en.yaml` with your own content.
+
+**Data directory:** commands look for `./user-data` in the current directory by
+default. Keep your data elsewhere by setting `CV_DATA_DIR` (as an env var or in
+a `.env` file next to where you run the command).
 
 
 ## Usage
 
 ```bash
 # Render to HTML
-uv run python render.py --profile ai-engineer
+cv-renderer --profile ai-engineer
 
 # Render and export to PDF
-uv run python render.py --profile ai-engineer --export pdf
+cv-renderer --profile ai-engineer --export pdf
 
 # Render in Turkish
-uv run python render.py --profile ai-engineer --lang tr
+cv-renderer --profile ai-engineer --lang tr
 
 # List available profiles
-uv run python render.py --list
+cv-renderer --list
 
 # Validate your CV data before rendering — tag typos, EN/TR parity,
 # wording issues, broken profile references
-uv run python render.py --lint
-uv run python render.py --lint --profile ai-engineer
+cv-renderer --lint
+cv-renderer --lint --profile ai-engineer
+
+# Machine-readable lint output for scripts and agents
+cv-renderer --lint --profile ai-engineer --format json
 ```
 
-Output lands in `out/`.
+`--lint` exits with `0` (clean), `1` (errors) or `2` (warnings only), so scripts
+can branch on the result.
+
+Output lands in `<data dir>/out/` — override per run with the `CV_OUT_DIR` env var.
 
 
 ## How It Works
@@ -112,7 +128,7 @@ When set, `skill_overrides` replaces the skills section entirely — it ignores 
 
 ## Tag System
 
-The tag vocabulary lives in `user-data/tags.yaml` (falls back to `examples/tags.yaml` if you haven't created one), not hardcoded anywhere — `render.py --lint` validates every tag in your data and profiles against it:
+The tag vocabulary lives in `user-data/tags.yaml` (falls back to the packaged example vocabulary if you haven't created one), not hardcoded anywhere — `cv-renderer --lint` validates every tag in your data and profiles against it:
 
 | Tag | Covers |
 |---|---|
@@ -166,9 +182,14 @@ Add any language by creating `base_<lang>.yaml` and selecting it with `--lang <l
 The profile schema is small and structured — an agent can generate a company-specific profile directly from a job description. It reads `user-data/data/base_en.yaml` to see the available tags and bullets, then produces `user-data/profiles/companies/<company>.yaml`. Lint it before rendering — it catches tag typos, wording mistakes, and broken references an agent can introduce:
 
 ```bash
-uv run python render.py --lint --profile companies/spotify
-uv run python render.py --profile companies/spotify --export pdf
+cv-renderer --lint --profile companies/spotify --format json
+cv-renderer --profile companies/spotify --export pdf
 ```
+
+`--format json` plus the exit codes make the linter usable as a validation gate
+in a pipeline: an orchestrator can install this package, invoke
+`python -m cv_renderer` as a subprocess, and feed the findings back to whatever
+generated the profile.
 
 Writing rules for bullet generation and profile creation are in [`AGENTS.md`](AGENTS.md).
 
@@ -182,13 +203,13 @@ cv-renderer/
 │   │   ├── base_en.yaml          ← CV content in English
 │   │   ├── base_tr.yaml          ← same structure, Turkish text
 │   │   └── base_<lang>.yaml      ← add more languages as needed
-│   └── profiles/
-├── templates/main.html.j2        ← Jinja2 template (visual design only)
+│   ├── profiles/
+│   └── out/                      ← rendered outputs
 ├── src/cv_renderer/              ← render engine (filter, loader, lint, render)
-├── examples/                     ← scaffold used by `init`
+│   ├── templates/main.html.j2    ← Jinja2 template (visual design only)
+│   └── examples/                 ← scaffold used by `init` (ships in the wheel)
 ├── docs/references/              ← Harvard OCS and XYZ writing guides
-├── tests/                        ← pytest suite (runs against examples/, never user-data/)
-└── out/                          ← rendered outputs (gitignored)
+└── tests/                        ← pytest suite (runs against the packaged examples, never user-data/)
 ```
 
 
@@ -204,6 +225,10 @@ uv run pytest
 ```
 
 CI runs all four on every push and pull request — see [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+**Releasing:** publish a GitHub Release tagged `vX.Y.Z` (with the matching
+`version` in `pyproject.toml`) — [`publish.yml`](.github/workflows/publish.yml)
+builds and uploads to PyPI via Trusted Publishing, no API token involved.
 
 
 ## License
