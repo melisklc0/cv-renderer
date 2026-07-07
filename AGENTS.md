@@ -2,6 +2,8 @@
 
 You are working on cv-renderer: a profile-driven CV renderer that produces tailored HTML and PDF exports from a single YAML data source.
 
+**Design principle:** cv-renderer only reorganizes and emphasizes truthful information already present in the user's CV. It does not fabricate experience, optimize for ATS scores, or attempt to manipulate applicant tracking systems.
+
 ## How to Work
 
 - Read `user-data/data/base_en.yaml` before touching any CV content or generating profiles — the live data is the source of truth for tags, bullets, and skill categories.

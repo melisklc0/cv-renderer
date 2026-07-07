@@ -179,7 +179,7 @@ Add any language by creating `base_<lang>.yaml` and selecting it with `--lang <l
 
 ## Agentic Workflow
 
-The profile schema is small and structured — an agent can generate a company-specific profile directly from a job description. It reads `user-data/data/base_en.yaml` to see the available tags and bullets, then produces `user-data/profiles/companies/<company>.yaml`. Lint it before rendering — it catches tag typos, wording mistakes, and broken references an agent can introduce:
+The profile schema is small and structured — an agent can draft a profile configuration from a job description by selecting and reorganizing existing CV content. It reads `user-data/data/base_en.yaml` to see the available tags and bullets, then produces `user-data/profiles/companies/<company>.yaml`. Lint it before rendering — it catches tag typos, wording mistakes, and broken references an agent can introduce:
 
 ```bash
 cv-renderer --lint --profile companies/spotify --format json
