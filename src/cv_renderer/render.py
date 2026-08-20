@@ -84,7 +84,9 @@ def render(
     jinja_template = env.get_template(f"{profile.template}.html.j2")
     html = jinja_template.render(**context)
 
-    out_html = _resolve_out_path(profile_name, cv.meta.name, profile.lang)
+    # Name comes from the rendered context, not the base data, so a profile's
+    # name_override renames the file too — a CV and its filename should match.
+    out_html = _resolve_out_path(profile_name, context["meta"]["name"], profile.lang)
     out_html.write_text(html, encoding="utf-8")
 
     if export_pdf:

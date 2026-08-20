@@ -60,9 +60,9 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict[
     include_all = not focus
 
     meta: dict[str, Any] = {
-        "name": cv.meta.name,
+        "name": profile.name_override or cv.meta.name,
         "title": profile.title_override or _resolve(cv.meta.title, variant),
-        "location": cv.meta.location,
+        "location": profile.location_override or cv.meta.location,
         "email": cv.meta.email,
         "phone": cv.meta.phone,
         "links": cv.meta.links.model_dump(),
@@ -78,7 +78,7 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict[
             {
                 "company": job.company,
                 "title": _resolve(job.title, variant),
-                "location": job.location,
+                "location": profile.experience_location_overrides.get(job.company, job.location),
                 "start": job.start,
                 "end": job.end,
                 "description": job.description,

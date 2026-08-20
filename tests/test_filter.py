@@ -172,6 +172,20 @@ def test_experience_override_forces_job_to_appear():
     assert out["experience"][0]["bullets"] == ["Forced in."]
 
 
+def test_experience_location_override_replaces_only_that_job():
+    cv = make_cv(experience=[make_job(company="Acme"), make_job(company="Globex")])
+    profile = make_profile(experience_location_overrides={"Acme": "Turkey"})
+    out = apply_profile(cv, profile, LABELS)
+    assert out["experience"][0]["location"] == "Turkey"
+    assert out["experience"][1]["location"] == "City"
+
+
+def test_experience_location_falls_back_to_base_data():
+    cv = make_cv(experience=[make_job(company="Acme")])
+    out = apply_profile(cv, make_profile(), LABELS)
+    assert out["experience"][0]["location"] == "City"
+
+
 # --- skill_categories / skill_overrides --------------------------------------
 
 
@@ -291,6 +305,20 @@ def test_title_override_takes_priority():
     profile = make_profile(title_override="Custom Title")
     out = apply_profile(cv, profile, LABELS)
     assert out["meta"]["title"] == "Custom Title"
+
+
+def test_name_override_takes_priority():
+    cv = make_cv(experience=[make_job()])
+    profile = make_profile(name_override="Test Person")
+    out = apply_profile(cv, profile, LABELS)
+    assert out["meta"]["name"] == "Test Person"
+
+
+def test_location_override_takes_priority():
+    cv = make_cv(experience=[make_job()])
+    profile = make_profile(location_override="Remote")
+    out = apply_profile(cv, profile, LABELS)
+    assert out["meta"]["location"] == "Remote"
 
 
 # --- lang passthrough ---------------------------------------------------------
