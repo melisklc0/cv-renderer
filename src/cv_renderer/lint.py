@@ -19,7 +19,6 @@ TaggedItem = tuple["list[str] | None", "int | None", str, bool]
 
 _LEVEL_ORDER = {"ERROR": 0, "WARNING": 1, "INFO": 2}
 
-_BACKED_RE = re.compile(r"\b(\w+)-backed\b", re.IGNORECASE)
 _PASSIVE_RE = re.compile(r"\b(was|were|been|being)\s+\w+ed\b", re.IGNORECASE)
 _PRONOUN_RE = {
     "en": re.compile(r"\b(I|we|my|our|me|us)\b", re.IGNORECASE),
@@ -141,39 +140,6 @@ def _iter_tagged_items(raw: JsonDict) -> list[TaggedItem]:
     return items
 
 
-def _iter_cv_texts(raw_cv: JsonDict) -> list[TextItem]:
-    """Every free-text field in a base CV file worth checking against wording rules."""
-    texts: list[TextItem] = []
-
-    about = raw_cv.get("about", {}) or {}
-    about_line = about.get("__line__")
-    for variant, text in about.items():
-        if variant != "__line__":
-            texts.append((text, about_line, f"about.{variant}"))
-
-    for job in raw_cv.get("experience", []):
-        company = job.get("company")
-        for variant, text in (job.get("title") or {}).items():
-            if variant != "__line__":
-                texts.append((text, job.get("__line__"), f"experience[{company}].title.{variant}"))
-        texts.append(
-            (job.get("description", ""), job.get("__line__"), f"experience[{company}].description")
-        )
-        for bullet in job.get("bullets", []):
-            texts.append(
-                (bullet.get("text", ""), bullet.get("__line__"), f"bullet in experience[{company}]")
-            )
-
-    for proj in raw_cv.get("projects", []):
-        name = proj.get("name")
-        for bullet in proj.get("bullets", []):
-            texts.append(
-                (bullet.get("text", ""), bullet.get("__line__"), f"bullet in project '{name}'")
-            )
-
-    return texts
-
-
 def _iter_cv_bullet_texts(raw_cv: JsonDict) -> list[TextItem]:
     """Just the bullets (experience + projects) — narrower than _iter_cv_texts,
     used by style rules that only apply to accomplishment bullets, not prose."""
@@ -247,24 +213,6 @@ def _apply_tag_rules(items: list[TaggedItem], filename: str, vocab: set[str]) ->
     return findings
 
 
-def _apply_backed_rule(items: list[TextItem], filename: str) -> list[Finding]:
-    findings: list[Finding] = []
-    for text, line, context in items:
-        if not isinstance(text, str):
-            continue
-        for m in _BACKED_RE.finditer(text):
-            findings.append(
-                Finding(
-                    "WARNING",
-                    filename,
-                    line,
-                    "SPELL-BACKEND",
-                    f'"{m.group(0)}" in {context} — use "{m.group(1)}-backend" instead',
-                )
-            )
-    return findings
-
-
 def _apply_style_rules(items: list[TextItem], filename: str, lang: str) -> list[Finding]:
     findings: list[Finding] = []
     pronoun_re = _PRONOUN_RE.get(lang, _PRONOUN_RE["en"])
@@ -313,14 +261,6 @@ def _apply_style_rules(items: list[TextItem], filename: str, lang: str) -> list[
 
 def _check_tags(raw: JsonDict, filename: str, vocab: set[str]) -> list[Finding]:
     return _apply_tag_rules(_iter_tagged_items(raw), filename, vocab)
-
-
-def _check_spelling(raw_en_cv: JsonDict, filename: str) -> list[Finding]:
-    return _apply_backed_rule(_iter_cv_texts(raw_en_cv), filename)
-
-
-def _check_profile_spelling(raw_profile: JsonDict, filename: str) -> list[Finding]:
-    return _apply_backed_rule(_iter_profile_texts(raw_profile), filename)
 
 
 def _check_style(raw_cv: JsonDict, filename: str, lang: str) -> list[Finding]:
@@ -432,20 +372,21 @@ def _check_profile_overrides(
     findings: list[Finding] = []
     line = raw_profile.get("__line__")
 
-    for key in raw_profile.get("experience_overrides", {}) or {}:
-        if key == "__line__":
-            continue
-        if key not in companies:
-            findings.append(
-                Finding(
-                    "ERROR",
-                    filename,
-                    line,
-                    "PROF-COMPANY",
-                    f"experience_overrides key '{key}' doesn't match any company "
-                    "in that profile's language base file",
+    for field in ("experience_overrides", "experience_location_overrides"):
+        for key in raw_profile.get(field, {}) or {}:
+            if key == "__line__":
+                continue
+            if key not in companies:
+                findings.append(
+                    Finding(
+                        "ERROR",
+                        filename,
+                        line,
+                        "PROF-COMPANY",
+                        f"{field} key '{key}' doesn't match any company "
+                        "in that profile's language base file",
+                    )
                 )
-            )
 
     project_keys = [k for k in (raw_profile.get("project_overrides", {}) or {}) if k != "__line__"]
     project_keys += list(raw_profile.get("project_order") or [])
@@ -552,7 +493,6 @@ def lint(profile_name: str | None = None) -> list[Finding]:
 
     raw_en, file_en = raw_by_lang["en"]
     raw_tr, file_tr = raw_by_lang["tr"]
-    findings += _check_spelling(raw_en, file_en)
     findings += _check_parity(raw_en, raw_tr, file_en, file_tr)
     findings += _check_style(raw_en, file_en, "en")
     findings += _check_style(raw_tr, file_tr, "tr")
@@ -585,8 +525,6 @@ def lint(profile_name: str | None = None) -> list[Finding]:
             companies.get(profile_lang, set()),
             project_names.get(profile_lang, set()),
         )
-        if profile_lang == "en":
-            findings += _check_profile_spelling(raw_profile, filename)
         findings += _check_profile_style(raw_profile, filename, profile_lang)
         if path.parent.name == "companies":
             findings += _check_profile_company_name(raw_profile, filename)

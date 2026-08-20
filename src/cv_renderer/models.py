@@ -104,7 +104,11 @@ class Profile(BaseModel):
     # tag-based selection. See filter.py::apply_profile for how each is applied.
     title_override: str | None = None
     about_override: str | None = None
+    location_override: str | None = None  # header location line, e.g. remote availability
+    name_override: str | None = None  # header name, e.g. a transliterated spelling
     experience_overrides: dict[str, list[str]] = {}  # keyed by ExperienceEntry.company
+    # keyed by ExperienceEntry.company; replaces that entry's location line only
+    experience_location_overrides: dict[str, str] = {}
     project_overrides: dict[str, list[str]] = {}  # keyed by Project.name
     project_order: list[str] | None = None  # keyed by Project.name; None = base data order
     # Regroups skill items into custom, per-application category labels — keyed by the

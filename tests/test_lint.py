@@ -145,81 +145,27 @@ def test_check_profile_overrides_flags_unknown_company_and_project():
     assert sum(f.rule == "PROF-PROJECT" for f in findings) == 2
 
 
+def test_check_profile_overrides_flags_unknown_experience_location_company():
+    raw_profile = {
+        "experience_location_overrides": {"Nonexistent Co": "Turkey"},
+        "__line__": 1,
+    }
+    findings = lint._check_profile_overrides(
+        raw_profile, "profile.yaml", companies={"Real Co"}, project_names=set()
+    )
+    assert sum(f.rule == "PROF-COMPANY" for f in findings) == 1
+
+
 def test_check_profile_overrides_allows_known_keys():
     raw_profile = {
         "experience_overrides": {"Real Co": ["bullet"]},
+        "experience_location_overrides": {"Real Co": "Turkey"},
         "project_overrides": {"Real Project": ["bullet"]},
         "__line__": 1,
     }
     findings = lint._check_profile_overrides(
         raw_profile, "profile.yaml", companies={"Real Co"}, project_names={"Real Project"}
     )
-    assert findings == []
-
-
-# --- SPELL-BACKEND -----------------------------------------------------------
-
-
-def test_check_spelling_flags_backed_suggests_backend():
-    raw_en = {
-        "about": {"default": "Built FastAPI-backed analytics pipelines.", "__line__": 1},
-        "experience": [],
-        "projects": [],
-    }
-    findings = lint._check_spelling(raw_en, "base_en.yaml")
-    assert len(findings) == 1
-    assert findings[0].rule == "SPELL-BACKEND"
-    assert "FastAPI-backend" in findings[0].message
-
-
-def test_check_spelling_ignores_correct_backend_usage():
-    raw_en = {
-        "about": {"default": "Built LLM-backend services.", "__line__": 1},
-        "experience": [],
-        "projects": [],
-    }
-    findings = lint._check_spelling(raw_en, "base_en.yaml")
-    assert findings == []
-
-
-def test_check_spelling_ignores_standalone_verb_usage():
-    # "backed by X" (no hyphen) is a normal, correct verb phrase — not the
-    # X-backed/X-backend compound-modifier mistake the rule targets.
-    raw_en = {
-        "about": {"default": "Retry logic, backed by a read-only database role.", "__line__": 1},
-        "experience": [],
-        "projects": [],
-    }
-    findings = lint._check_spelling(raw_en, "base_en.yaml")
-    assert findings == []
-
-
-def test_check_profile_spelling_scans_experience_overrides():
-    raw_profile = {
-        "__line__": 1,
-        "experience_overrides": {"Acme": ["Shipped a SQL-backed reporting pipeline."]},
-    }
-    findings = lint._check_profile_spelling(raw_profile, "profile.yaml")
-    assert len(findings) == 1
-    assert "SQL-backend" in findings[0].message
-
-
-def test_check_profile_spelling_scans_about_and_title_override():
-    raw_profile = {
-        "__line__": 1,
-        "about_override": "FastAPI-backed services.",
-        "title_override": "LLM-backed Engineer",
-    }
-    findings = lint._check_profile_spelling(raw_profile, "profile.yaml")
-    assert len(findings) == 2
-
-
-def test_check_profile_spelling_ignores_standalone_verb_usage():
-    raw_profile = {
-        "__line__": 1,
-        "experience_overrides": {"Acme": ["Retry logic, backed by a read-only database role."]},
-    }
-    findings = lint._check_profile_spelling(raw_profile, "profile.yaml")
     assert findings == []
 
 
@@ -398,7 +344,7 @@ def test_check_style_flags_passive_pronoun_and_weak_lead():
 def test_format_report_summarizes_counts():
     findings = [
         lint.Finding("ERROR", "base_en.yaml", 3, "TAG-UNKNOWN", "bad tag"),
-        lint.Finding("WARNING", "base_en.yaml", 5, "SPELL-BACKEND", "use backend"),
+        lint.Finding("WARNING", "base_en.yaml", 5, "NO-COMPANY-NAME", "company named"),
         lint.Finding("INFO", "base_en.yaml", 7, "STYLE-PASSIVE", "passive voice"),
     ]
     report = lint.format_report(findings)

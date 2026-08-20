@@ -99,6 +99,30 @@ about_override: |
 
 When omitted, the title/summary fall back to the `variant` lookup in `base_<lang>.yaml` as usual.
 
+`location_override` replaces the header location line for one application — useful when a
+posting is remote and the base data's home city says less about availability than the time
+zone does:
+
+```yaml
+location_override: Remote · UTC+3 · Available on US Time Zones
+```
+
+`name_override` replaces the header name — for a transliterated spelling when the target
+market's systems handle non-ASCII characters poorly. It renames the output file too:
+
+```yaml
+name_override: Jan Kowalski
+```
+
+`experience_location_overrides` does the same for a single job's location line, keyed by
+`company` like `experience_overrides` — useful when a city that means something locally
+says nothing to a reader abroad:
+
+```yaml
+experience_location_overrides:
+  Acme Software: Turkey
+```
+
 Tag filtering can only pick among bullets that already exist, and can only include or exclude a whole job/project by its tags — it can't reframe a real accomplishment around a different angle, and it can't partially include something whose tags don't match. `experience_overrides` / `project_overrides` replace one entry's bullets outright, keyed by `company` / project `name`:
 
 ```yaml
