@@ -130,3 +130,13 @@ class Profile(BaseModel):
     font_family: str = "Arial, Helvetica, sans-serif"
     font_sizes: FontSizes = FontSizes()
     template: str = "main"
+
+
+class CoverLetterContent(BaseModel):
+    """A cover letter's body — paired with a `Profile` (via `--profile`) for the
+    header. Its own small file, versioned the same way a `Profile` is, rather
+    than an untracked scratch text file: `paragraphs` is the single source of
+    truth `render_cover_letter` reads.
+    """
+
+    paragraphs: list[str]

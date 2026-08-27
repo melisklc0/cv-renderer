@@ -1,0 +1,44 @@
+:root {
+  --size-name: {{ font_sizes.name }}pt;
+  --size-section: {{ font_sizes.section }}pt;
+  --size-body: {{ font_sizes.body }}pt;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: {{ font_family }};
+  font-size: var(--size-body);
+  line-height: 1.30;
+  color: #000;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 28px 36px;
+}
+
+/* ── Header (shared by the CV and the cover letter) ── */
+h1 {
+  font-size: var(--size-name);
+  font-weight: bold;
+  line-height: 1.1;
+  letter-spacing: -0.3px;
+}
+.headline {
+  margin-top: 2px;
+}
+.contact {
+  margin-top: 4px;
+}
+.contact a {
+  color: #1154CC;
+  text-decoration: underline;
+}
+
+header { margin-bottom: 10px; }
+
+/* ── Print ── */
+@media print {
+  body { padding: 0; max-width: 100%; }
+  @page { size: A4; margin: 10mm 12mm 10mm 12mm; }
+  a { color: #1154CC; text-decoration: underline; }
+}
