@@ -4,43 +4,7 @@
   <meta charset="UTF-8">
   <title>{{ meta.name }} — CV</title>
   <style>
-    :root {
-      --size-name: {{ font_sizes.name }}pt;
-      --size-section: {{ font_sizes.section }}pt;
-      --size-body: {{ font_sizes.body }}pt;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: {{ font_family }};
-      font-size: var(--size-body);
-      line-height: 1.30;
-      color: #000;
-      max-width: 780px;
-      margin: 0 auto;
-      padding: 28px 36px;
-    }
-
-    /* ── Header ── */
-    h1 {
-      font-size: var(--size-name);
-      font-weight: bold;
-      line-height: 1.1;
-      letter-spacing: -0.3px;
-    }
-    .headline {
-      margin-top: 2px;
-    }
-    .contact {
-      margin-top: 4px;
-    }
-    .contact a {
-      color: #1154CC;
-      text-decoration: underline;
-    }
-
-    header { margin-bottom: 10px; }
+    {% include "_style.css.j2" %}
 
     /* ── Sections ── */
     section { margin-bottom: 10px; }
@@ -119,29 +83,11 @@
     .additional-item { margin-bottom: 3px; }
     .cert-row { display: flex; gap: 6px; align-items: flex-start; }
     .cert-label { white-space: nowrap; flex-shrink: 0; }
-
-    /* ── Print ── */
-    @media print {
-      body { padding: 0; max-width: 100%; }
-      @page { size: A4; margin: 10mm 12mm 10mm 12mm; }
-      a { color: #1154CC; text-decoration: underline; }
-    }
   </style>
 </head>
 <body>
 
-<header>
-  <h1>{{ meta.name }}</h1>
-  <p class="headline">{{ meta.title }}</p>
-  <p class="contact">
-    {{- meta.location -}}
-    {%- if meta.email %} | <a href="mailto:{{ meta.email }}">{{ meta.email }}</a>{% endif %}
-    {%- if meta.phone %} | {{ meta.phone }}{% endif %}
-    {%- if meta.links.linkedin %} | <a href="https://{{ meta.links.linkedin }}">LinkedIn</a>{% endif %}
-    {%- if meta.links.github %} | <a href="https://{{ meta.links.github }}">GitHub</a>{% endif %}
-    {%- if meta.links.portfolio %} | <a href="https://{{ meta.links.portfolio }}">Portfolio</a>{% endif %}
-  </p>
-</header>
+{% include "_header.html.j2" %}
 
 {% if about %}
 <section>

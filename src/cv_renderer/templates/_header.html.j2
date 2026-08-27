@@ -1,0 +1,12 @@
+<header>
+  <h1>{{ meta.name }}</h1>
+  <p class="headline">{{ meta.title }}</p>
+  <p class="contact">
+    {{- meta.location -}}
+    {%- if meta.email %} | <a href="mailto:{{ meta.email }}">{{ meta.email }}</a>{% endif %}
+    {%- if meta.phone %} | {{ meta.phone }}{% endif %}
+    {%- if meta.links.linkedin %} | <a href="https://{{ meta.links.linkedin }}">LinkedIn</a>{% endif %}
+    {%- if meta.links.github %} | <a href="https://{{ meta.links.github }}">GitHub</a>{% endif %}
+    {%- if meta.links.portfolio %} | <a href="https://{{ meta.links.portfolio }}">Portfolio</a>{% endif %}
+  </p>
+</header>

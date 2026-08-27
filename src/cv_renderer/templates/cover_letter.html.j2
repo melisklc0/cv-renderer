@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ meta.name }} — Cover Letter</title>
+  <style>
+    {% include "_style.css.j2" %}
+
+    /* ── Letter body ── */
+    .letter-body p {
+      margin-bottom: 10px;
+      text-align: justify;
+    }
+    .closing {
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+{% include "_header.html.j2" %}
+
+<div class="letter-body">
+  <p>Hi,</p>
+  {% for paragraph in paragraphs %}
+  <p>{{ paragraph }}</p>
+  {% endfor %}
+</div>
+
+<p class="closing">Sincerely,<br>{{ meta.name }}</p>
+
+</body>
+</html>
