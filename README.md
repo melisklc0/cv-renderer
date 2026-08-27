@@ -218,6 +218,29 @@ generated the profile.
 Writing rules for bullet generation and profile creation are in [`AGENTS.md`](AGENTS.md).
 
 
+## Cover Letters
+
+`cv-renderer` also renders a cover letter, reusing the same header (name, title, contact line) as the CV for one profile — so the two documents for one application always agree on who is applying and for what title:
+
+```bash
+cv-renderer --profile companies/spotify --cover-letter letter.yaml --export pdf
+```
+
+`letter.yaml` is one small file with one key:
+
+```yaml
+paragraphs:
+  - Opening paragraph — why you're writing, the exact position, where you found it.
+  - One or two STAR-shaped proof points, not a résumé recap.
+  - Closing paragraph — reiterate interest, thank the reader.
+```
+
+The template supplies the rest itself: the profile's header, a fixed "Hi," greeting, and a fixed "Sincerely, `<name>`" sign-off. `paragraphs` holds prose only — no name, no date, no "Dear ...:" line; writing any of that yourself produces a duplicate in the rendered PDF.
+
+Writing rules for cover-letter paragraphs are in
+[`docs/cover-letter-writing-rules.md`](docs/cover-letter-writing-rules.md) — the cover-letter counterpart to `cv-writing-rules.md`, and explicitly *not* the same rules (STAR-shaped prose with "I", not XYZ bullets with no pronouns).
+
+
 ## Project Structure
 
 ```
@@ -230,9 +253,16 @@ cv-renderer/
 │   ├── profiles/
 │   └── out/                      ← rendered outputs
 ├── src/cv_renderer/              ← render engine (filter, loader, lint, render)
-│   ├── templates/main.html.j2    ← Jinja2 template (visual design only)
+│   ├── templates/
+│   │   ├── _header.html.j2       ← shared header partial (name/title/contact)
+│   │   ├── _style.css.j2         ← shared CSS partial
+│   │   ├── main.html.j2          ← CV template
+│   │   └── cover_letter.html.j2  ← cover letter template, reuses the CV's header
 │   └── examples/                 ← scaffold used by `init` (ships in the wheel)
-├── docs/references/              ← Harvard OCS and XYZ writing guides
+├── docs/
+│   ├── cv-writing-rules.md
+│   ├── cover-letter-writing-rules.md
+│   └── references/               ← Harvard OCS, XYZ, and STAR writing guides
 └── tests/                        ← pytest suite (runs against the packaged examples, never user-data/)
 ```
 
