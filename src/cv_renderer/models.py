@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 class Links(BaseModel):
@@ -25,6 +25,16 @@ class Bullet(BaseModel):
     tags: list[str]
 
 
+class Project(BaseModel):
+    name: str
+    subtitle: str = ""
+    year: int | None = None
+    start: int | str | None = None
+    end: int | str | None = None
+    tags: list[str]
+    bullets: list[Bullet]
+
+
 class ExperienceEntry(BaseModel):
     company: str
     title: dict[str, str]
@@ -33,7 +43,22 @@ class ExperienceEntry(BaseModel):
     end: str
     tags: list[str]
     description: str = ""
-    bullets: list[Bullet]
+    # A job carries either loose bullets or named sub-projects, not both: use
+    # `projects` only when one employer hosted distinct workstreams worth naming
+    # (rendered as sub-headings), otherwise keep the entry flat with `bullets`.
+    bullets: list[Bullet] = []
+    projects: list[Project] = []
+
+    @model_validator(mode="after")
+    def require_content(self) -> "ExperienceEntry":
+        if not self.bullets and not self.projects:
+            raise ValueError(f"experience[{self.company}] has neither bullets nor projects")
+        if self.bullets and self.projects:
+            raise ValueError(
+                f"experience[{self.company}] mixes loose bullets with sub-projects — "
+                "move the loose bullets into a named project"
+            )
+        return self
 
 
 class EducationEntry(BaseModel):
@@ -61,16 +86,6 @@ class SkillCategory(BaseModel):
         for item in v:
             normalized.append({"text": item, "tags": []} if isinstance(item, str) else item)
         return normalized
-
-
-class Project(BaseModel):
-    name: str
-    subtitle: str = ""
-    year: int | None = None
-    start: int | str | None = None
-    end: int | str | None = None
-    tags: list[str]
-    bullets: list[Bullet]
 
 
 class Additional(BaseModel):
@@ -106,11 +121,16 @@ class Profile(BaseModel):
     about_override: str | None = None
     location_override: str | None = None  # header location line, e.g. remote availability
     name_override: str | None = None  # header name, e.g. a transliterated spelling
-    experience_overrides: dict[str, list[str]] = {}  # keyed by ExperienceEntry.company
+    # Keyed by ExperienceEntry.company. On a job with sub-projects this flattens the
+    # entry: the hand-written bullets replace the sub-project headings entirely.
+    experience_overrides: dict[str, list[str]] = {}
     # keyed by ExperienceEntry.company; replaces that entry's location line only
     experience_location_overrides: dict[str, str] = {}
-    project_overrides: dict[str, list[str]] = {}  # keyed by Project.name
-    project_order: list[str] | None = None  # keyed by Project.name; None = base data order
+    # Keyed by Project.name, covering both the standalone Projects section and
+    # sub-projects nested under a job — one namespace, since names are unique.
+    project_overrides: dict[str, list[str]] = {}
+    # Reorders the Projects section only; sub-projects follow base-data order.
+    project_order: list[str] | None = None
     # Regroups skill items into custom, per-application category labels — keyed by the
     # new category name, valued by a list of item texts pulled from anywhere in the base
     # data's skills (regardless of their original category). Replaces skill_categories
