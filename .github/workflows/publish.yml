@@ -1,20 +1,67 @@
-# Publish to PyPI on every GitHub Release (tag like v0.1.0).
+# Publish to PyPI whenever main carries a version that has not been released yet.
+#
+# The version in pyproject.toml is the trigger: bump it, merge to main, and this
+# cuts the tag, the GitHub Release and the PyPI upload on its own. A push that
+# does not change the version finds its tag already there and stops.
 #
 # Uses PyPI Trusted Publishing (OIDC) — no API token stored in GitHub.
 # One-time setup on pypi.org: Account → Publishing → add a "pending publisher"
 # for project `cv-renderer`, repo `melisklc0/cv-renderer`, workflow `publish.yml`,
-# environment `pypi`.
+# environment `pypi`. That config names this file, so renaming it breaks
+# publishing.
 name: Publish
 
 on:
-  release:
-    types: [published]
+  # Chained off CI rather than off the push: a version that fails its own tests
+  # must not reach PyPI, where an upload cannot be taken back or replaced.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  # For re-running a release whose publish step failed after CI had gone green.
+  workflow_dispatch:
 
 jobs:
+  check:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release: ${{ steps.version.outputs.release }}
+      sha: ${{ steps.version.outputs.sha }}
+    steps:
+      # workflow_run starts from the default branch, not from the commit that
+      # triggered CI — every job below checks out this sha explicitly.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0 # tags, so an already-released version is recognised
+
+      - id: version
+        run: |
+          set -euo pipefail
+          sha=$(git rev-parse HEAD)
+          version=$(python3 -c "import tomllib,pathlib;print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+            echo "v$version is already tagged — nothing to release."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Releasing v$version from $sha."
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: check
+    if: needs.check.outputs.release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check.outputs.sha }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -28,11 +75,11 @@ jobs:
           path: dist/
 
   publish:
-    needs: build
+    needs: [check, build]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
-      id-token: write  # trusted publishing
+      id-token: write # trusted publishing
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -41,3 +88,31 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  release:
+    # After PyPI, not before: the tag is the record that this version shipped,
+    # and a tag on a version that never uploaded is worse than no tag.
+    needs: [check, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check.outputs.sha }}
+          fetch-depth: 0 # --generate-notes diffs against the previous tag
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "v${{ needs.check.outputs.version }}" dist/* \
+            --target "${{ needs.check.outputs.sha }}" \
+            --title "v${{ needs.check.outputs.version }}" \
+            --generate-notes
