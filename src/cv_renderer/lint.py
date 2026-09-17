@@ -573,8 +573,8 @@ def lint(profile_name: str | None = None) -> list[Finding]:
     # Sub-projects share the project_overrides namespace with the standalone
     # Projects section, so an override may legitimately key either of them.
     project_names = {
-        "en": {p.get("name") for p, _ in _iter_projects(raw_en)},
-        "tr": {p.get("name") for p, _ in _iter_projects(raw_tr)},
+        "en": {p["name"] for p, _ in _iter_projects(raw_en) if "name" in p},
+        "tr": {p["name"] for p, _ in _iter_projects(raw_tr) if "name" in p},
     }
     orderable_projects = {
         "en": {p.get("name") for p in raw_en.get("projects", [])},
