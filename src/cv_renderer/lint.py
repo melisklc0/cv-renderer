@@ -80,6 +80,19 @@ def _rel(path: Path) -> str:
 # automatically also applies to profile override content.
 
 
+def _iter_projects(raw: JsonDict) -> list[tuple[JsonDict, str]]:
+    """Every project in the file paired with its context label — the standalone
+    Projects section plus the sub-projects nested inside experience entries, so a
+    rule written for one automatically covers the other."""
+    found: list[tuple[JsonDict, str]] = []
+    for job in raw.get("experience", []):
+        for sub in job.get("projects", []):
+            found.append((sub, f"project '{sub.get('name')}' in experience[{job.get('company')}]"))
+    for proj in raw.get("projects", []):
+        found.append((proj, f"project '{proj.get('name')}'"))
+    return found
+
+
 def _iter_tagged_items(raw: JsonDict) -> list[TaggedItem]:
     items: list[TaggedItem] = []
 
@@ -124,17 +137,11 @@ def _iter_tagged_items(raw: JsonDict) -> list[TaggedItem]:
                         )
                     )
 
-    for proj in raw.get("projects", []):
-        name = proj.get("name")
-        items.append((proj.get("tags", []), proj.get("__line__"), f"project '{name}'", False))
+    for proj, context in _iter_projects(raw):
+        items.append((proj.get("tags", []), proj.get("__line__"), context, False))
         for bullet in proj.get("bullets", []):
             items.append(
-                (
-                    bullet.get("tags", []),
-                    bullet.get("__line__"),
-                    f"bullet in project '{name}'",
-                    True,
-                )
+                (bullet.get("tags", []), bullet.get("__line__"), f"bullet in {context}", True)
             )
 
     return items
@@ -153,15 +160,9 @@ def _iter_cv_bullet_texts(raw_cv: JsonDict) -> list[TextItem]:
                     f"bullet in experience[{job.get('company')}]",
                 )
             )
-    for proj in raw_cv.get("projects", []):
+    for proj, context in _iter_projects(raw_cv):
         for bullet in proj.get("bullets", []):
-            texts.append(
-                (
-                    bullet.get("text", ""),
-                    bullet.get("__line__"),
-                    f"bullet in project '{proj.get('name')}'",
-                )
-            )
+            texts.append((bullet.get("text", ""), bullet.get("__line__"), f"bullet in {context}"))
     return texts
 
 
@@ -330,6 +331,20 @@ def _check_date_order(raw: JsonDict, filename: str) -> list[Finding]:
                         f"is after end ({entry.get('end')})",
                     )
                 )
+
+    for proj, context in _iter_projects(raw):
+        start = _parse_date(proj.get("start")) if proj.get("start") is not None else None
+        end = _parse_date(proj.get("end")) if proj.get("end") is not None else None
+        if start is not None and end is not None and start > end:
+            findings.append(
+                Finding(
+                    "ERROR",
+                    filename,
+                    proj.get("__line__"),
+                    "DATE-ORDER",
+                    f"{context}: start ({proj.get('start')}) is after end ({proj.get('end')})",
+                )
+            )
     return findings
 
 
@@ -367,7 +382,11 @@ def _check_profile_focus_tags(
 
 
 def _check_profile_overrides(
-    raw_profile: JsonDict, filename: str, companies: set[str], project_names: set[str]
+    raw_profile: JsonDict,
+    filename: str,
+    companies: set[str],
+    project_names: set[str],
+    orderable_projects: set[str],
 ) -> list[Finding]:
     findings: list[Finding] = []
     line = raw_profile.get("__line__")
@@ -388,9 +407,9 @@ def _check_profile_overrides(
                     )
                 )
 
-    project_keys = [k for k in (raw_profile.get("project_overrides", {}) or {}) if k != "__line__"]
-    project_keys += list(raw_profile.get("project_order") or [])
-    for key in project_keys:
+    for key in raw_profile.get("project_overrides", {}) or {}:
+        if key == "__line__":
+            continue
         if key not in project_names:
             findings.append(
                 Finding(
@@ -398,10 +417,34 @@ def _check_profile_overrides(
                     filename,
                     line,
                     "PROF-PROJECT",
-                    f"'{key}' (project_overrides/project_order) doesn't match any project "
-                    "name in that profile's language base file",
+                    f"project_overrides key '{key}' doesn't match any project name "
+                    "in that profile's language base file",
                 )
             )
+
+    # project_order only reorders the standalone Projects section. A real but
+    # nested project here is a no-op the renderer ignores — a warning, since
+    # archived profiles written before a project moved under an employer stay
+    # re-renderable. An outright unknown name is still a typo, so still an error.
+    for key in raw_profile.get("project_order") or []:
+        if key in orderable_projects:
+            continue
+        nested = key in project_names
+        findings.append(
+            Finding(
+                "WARNING" if nested else "ERROR",
+                filename,
+                line,
+                "PROF-PROJECT",
+                f"project_order entry '{key}' "
+                + (
+                    "is a sub-project under an experience entry, not a Projects-section "
+                    "entry — it is ignored here; sub-projects render in base-data order"
+                    if nested
+                    else "doesn't match any project name in that profile's language base file"
+                ),
+            )
+        )
 
     return findings
 
@@ -436,6 +479,32 @@ def _check_parity(raw_en: JsonDict, raw_tr: JsonDict, file_en: str, file_tr: str
                     f"{bullets_en} EN bullets vs {bullets_tr} TR bullets",
                 )
             )
+        subs_en, subs_tr = job_en.get("projects", []), job_tr.get("projects", [])
+        if len(subs_en) != len(subs_tr):
+            findings.append(
+                Finding(
+                    "WARNING",
+                    file_tr,
+                    job_tr.get("__line__"),
+                    "PARITY-SUBPROJECT-COUNT",
+                    f"experience[{i}] ('{job_en.get('company')}'): "
+                    f"{len(subs_en)} EN sub-projects vs {len(subs_tr)} TR sub-projects",
+                )
+            )
+        for j in range(min(len(subs_en), len(subs_tr))):
+            n_en, n_tr = len(subs_en[j].get("bullets", [])), len(subs_tr[j].get("bullets", []))
+            if n_en != n_tr:
+                findings.append(
+                    Finding(
+                        "WARNING",
+                        file_tr,
+                        subs_tr[j].get("__line__"),
+                        "PARITY-BULLET-COUNT",
+                        f"experience[{i}].projects[{j}] "
+                        f"('{subs_en[j].get('name')}' / '{subs_tr[j].get('name')}'): "
+                        f"{n_en} EN bullets vs {n_tr} TR bullets",
+                    )
+                )
         tags_en, tags_tr = job_en.get("tags", []), job_tr.get("tags", [])
         if tags_en != tags_tr:
             findings.append(
@@ -501,7 +570,13 @@ def lint(profile_name: str | None = None) -> list[Finding]:
         "en": {j.get("company") for j in raw_en.get("experience", [])},
         "tr": {j.get("company") for j in raw_tr.get("experience", [])},
     }
+    # Sub-projects share the project_overrides namespace with the standalone
+    # Projects section, so an override may legitimately key either of them.
     project_names = {
+        "en": {p.get("name") for p, _ in _iter_projects(raw_en)},
+        "tr": {p.get("name") for p, _ in _iter_projects(raw_tr)},
+    }
+    orderable_projects = {
         "en": {p.get("name") for p in raw_en.get("projects", [])},
         "tr": {p.get("name") for p in raw_tr.get("projects", [])},
     }
@@ -524,6 +599,7 @@ def lint(profile_name: str | None = None) -> list[Finding]:
             filename,
             companies.get(profile_lang, set()),
             project_names.get(profile_lang, set()),
+            orderable_projects.get(profile_lang, set()),
         )
         findings += _check_profile_style(raw_profile, filename, profile_lang)
         if path.parent.name == "companies":

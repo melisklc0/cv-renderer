@@ -139,7 +139,11 @@ def test_check_profile_overrides_flags_unknown_company_and_project():
         "__line__": 1,
     }
     findings = lint._check_profile_overrides(
-        raw_profile, "profile.yaml", companies={"Real Co"}, project_names={"Real Project"}
+        raw_profile,
+        "profile.yaml",
+        companies={"Real Co"},
+        project_names={"Real Project"},
+        orderable_projects={"Real Project"},
     )
     assert sum(f.rule == "PROF-COMPANY" for f in findings) == 1
     assert sum(f.rule == "PROF-PROJECT" for f in findings) == 2
@@ -151,7 +155,11 @@ def test_check_profile_overrides_flags_unknown_experience_location_company():
         "__line__": 1,
     }
     findings = lint._check_profile_overrides(
-        raw_profile, "profile.yaml", companies={"Real Co"}, project_names=set()
+        raw_profile,
+        "profile.yaml",
+        companies={"Real Co"},
+        project_names=set(),
+        orderable_projects=set(),
     )
     assert sum(f.rule == "PROF-COMPANY" for f in findings) == 1
 
@@ -164,9 +172,29 @@ def test_check_profile_overrides_allows_known_keys():
         "__line__": 1,
     }
     findings = lint._check_profile_overrides(
-        raw_profile, "profile.yaml", companies={"Real Co"}, project_names={"Real Project"}
+        raw_profile,
+        "profile.yaml",
+        companies={"Real Co"},
+        project_names={"Real Project"},
+        orderable_projects={"Real Project"},
     )
     assert findings == []
+
+
+def test_check_profile_overrides_warns_rather_than_errors_on_a_nested_project_in_project_order():
+    # project_order only reorders the standalone Projects section. A real project
+    # that has since moved under an employer is a no-op, not a typo — the profile
+    # stays re-renderable, so it may not be an error.
+    raw_profile = {"project_order": ["Nested Project"], "__line__": 1}
+    findings = lint._check_profile_overrides(
+        raw_profile,
+        "profile.yaml",
+        companies=set(),
+        project_names={"Nested Project"},
+        orderable_projects=set(),
+    )
+    assert [(f.level, f.rule) for f in findings] == [("WARNING", "PROF-PROJECT")]
+    assert "sub-project" in findings[0].message
 
 
 def test_check_profile_style_scans_project_overrides():

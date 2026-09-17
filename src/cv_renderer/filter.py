@@ -1,6 +1,6 @@
 from typing import Any
 
-from cv_renderer.models import Bullet, CVData, Profile
+from cv_renderer.models import Bullet, CVData, Profile, Project
 
 
 def _resolve(variants: dict[str, str], variant: str) -> str:
@@ -34,6 +34,38 @@ def _resolve_bullets(
     if override is not None:
         return override
     return _filter_bullets(bullets, focus, deprio, max_n)
+
+
+def _select_projects(
+    projects: list[Project],
+    overrides: dict[str, list[str]],
+    focus: set[str],
+    deprio: set[str],
+    max_n: int,
+    include_all: bool,
+) -> list[dict[str, Any]]:
+    """Tag-select and render a list of projects. Shared by the standalone Projects
+    section and by sub-projects nested under a job, so both are keyed by the same
+    `project_overrides` namespace and obey the same per-project bullet cap."""
+    selected: list[dict[str, Any]] = []
+    for proj in projects:
+        override = overrides.get(proj.name)
+        if override is None and not include_all and not (set(proj.tags) & focus):
+            continue
+        bullets = _resolve_bullets(override, proj.bullets, focus, deprio, max_n)
+        if not bullets:
+            continue
+        selected.append(
+            {
+                "name": proj.name,
+                "subtitle": proj.subtitle,
+                "year": proj.year,
+                "start": proj.start,
+                "end": proj.end,
+                "bullets": bullets,
+            }
+        )
+    return selected
 
 
 def _filter_skill_items(items: list[Bullet], focus: set[str], deprio: set[str]) -> list[str]:
@@ -71,8 +103,20 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict[
     experience: list[dict[str, Any]] = []
     for job in cv.experience:
         override = profile.experience_overrides.get(job.company)
-        bullets = _resolve_bullets(override, job.bullets, focus, deprio, max_b)
-        if not bullets:
+        # An experience_overrides entry flattens the job: it replaces sub-projects and
+        # their bullets with one hand-written list, so a tight one-page profile can
+        # collapse a multi-workstream employer without editing the base data.
+        if override is not None:
+            bullets, sub_projects = override, []
+        elif job.projects:
+            bullets = []
+            sub_projects = _select_projects(
+                job.projects, profile.project_overrides, focus, deprio, max_b, include_all
+            )
+        else:
+            bullets = _resolve_bullets(None, job.bullets, focus, deprio, max_b)
+            sub_projects = []
+        if not bullets and not sub_projects:
             continue
         experience.append(
             {
@@ -83,6 +127,7 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict[
                 "end": job.end,
                 "description": job.description,
                 "bullets": bullets,
+                "projects": sub_projects,
             }
         )
 
@@ -110,24 +155,9 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict[
             order = {name: i for i, name in enumerate(profile.skill_categories)}
             skills.sort(key=lambda s: order.get(s["category"], 999))
 
-    projects: list[dict[str, Any]] = []
-    for proj in cv.projects:
-        override = profile.project_overrides.get(proj.name)
-        if override is None and not include_all and not (set(proj.tags) & focus):
-            continue
-        bullets = _resolve_bullets(override, proj.bullets, focus, deprio, max_b)
-        if not bullets:
-            continue
-        projects.append(
-            {
-                "name": proj.name,
-                "subtitle": proj.subtitle,
-                "year": proj.year,
-                "start": proj.start,
-                "end": proj.end,
-                "bullets": bullets,
-            }
-        )
+    projects = _select_projects(
+        cv.projects, profile.project_overrides, focus, deprio, max_b, include_all
+    )
 
     if profile.project_order is not None:
         order = {name: i for i, name in enumerate(profile.project_order)}

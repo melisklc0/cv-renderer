@@ -15,6 +15,9 @@
       border-bottom: 1px solid #000;
       padding-bottom: 1px;
       margin-bottom: 5px;
+      /* Never let a section heading sit alone at the foot of a page. */
+      break-after: avoid;
+      page-break-after: avoid;
     }
 
     /* ── About ── */
@@ -37,6 +40,23 @@
     .job-desc {
       margin: 3px 0 3px;
       text-align: justify;
+    }
+    /* One notch above body text, so a sub-project heading below it reads as the
+       second level rather than as a sibling of the employer line. */
+    .job-heading {
+      font-size: calc(var(--size-body) + 1pt);
+      break-after: avoid;
+      page-break-after: avoid;
+    }
+
+    /* ── Sub-projects (named workstreams inside one job) ── */
+    .subproject {
+      margin: 4px 0 0 10px;
+      page-break-inside: avoid;
+    }
+    .subproject ul.bullets {
+      padding-left: 12px;
+      margin-top: 2px;
     }
 
     /* ── Bullets ── */
@@ -103,14 +123,32 @@
   <h2>{{ labels.experience }}</h2>
   {% for job in experience %}
   <div class="job">
-    <div class="row-spaced">
+    <div class="row-spaced job-heading">
       <strong>{{ job.title }}, {{ job.company }}, {{ job.location }}</strong>
       <span class="dates">{{ job.start | fmtdate }} {{ labels.to }} {{ job.end | fmtdate }}</span>
     </div>
     {% if job.description %}<p class="job-desc">{{ job.description }}</p>{% endif %}
+    {% if job.projects %}
+      {% for sub in job.projects %}
+      <div class="subproject">
+        <div class="row-spaced">
+          <strong>{{ sub.name }}{% if sub.subtitle %} — {{ sub.subtitle }}{% endif %}</strong>
+          <span class="dates">
+            {%- if sub.year %}{{ sub.year }}
+            {%- elif sub.start %}{{ sub.start | fmtdate }} {{ labels.to }} {{ sub.end | fmtdate }}
+            {%- endif %}
+          </span>
+        </div>
+        <ul class="bullets">
+          {% for b in sub.bullets %}<li>{{ b }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    {% else %}
     <ul class="bullets">
       {% for b in job.bullets %}<li>{{ b }}</li>{% endfor %}
     </ul>
+    {% endif %}
   </div>
   {% endfor %}
 </section>

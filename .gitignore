@@ -224,3 +224,7 @@ out/
 user-data/
 
 templates/images/*.png
+
+# CV/cover-letter writing rules — kept local, not published with the renderer
+docs/cv-writing-rules.md
+docs/cover-letter-writing-rules.md
