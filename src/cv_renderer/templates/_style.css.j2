@@ -1,4 +1,10 @@
 :root {
+  --accent: {{ accent_color }};
+  --color-heading: {{ theme.heading_color or "#000" }};
+  --color-title: {{ theme.title_color or "inherit" }};
+  --color-muted: {{ theme.muted_color or "inherit" }};
+  --size-headline: {{ font_sizes.headline or font_sizes.body }}pt;
+  --size-entry: {{ font_sizes.entry or font_sizes.body }}pt;
   --size-name: {{ font_sizes.name }}pt;
   --size-section: {{ font_sizes.section }}pt;
   --size-body: {{ font_sizes.body }}pt;
@@ -25,20 +31,40 @@ h1 {
 }
 .headline {
   margin-top: 2px;
+  font-size: var(--size-headline);
+  color: var(--color-title);
+  font-weight: {{ "bold" if theme.title_bold else "normal" }};
+  font-style: {{ "italic" if theme.title_italic else "normal" }};
 }
 .contact {
   margin-top: 4px;
+  color: var(--color-muted);
 }
 .contact a {
-  color: #1154CC;
+  color: var(--accent);
   text-decoration: underline;
 }
+/* `contact_links: false` prints the address instead of the label and drops the
+   link colour and underline, so the contact line reads as one uninterrupted
+   run. The anchor stays — it is what carries the https:// the printed text
+   omits, and without it a PDF viewer resolves a bare `linkedin.com/...` as a
+   relative path and opens a blank page. */
+.contact .contact-link {
+  color: inherit;
+  text-decoration: none;
+}
 
-header { margin-bottom: 10px; }
+/* Centred, while every section below stays left-aligned: the header is the one
+   block that is not a list of entries, so centring it reads as a title page
+   rather than as a broken column. */
+header {
+  margin-bottom: 10px;
+  text-align: center;
+}
 
 /* ── Print ── */
 @media print {
   body { padding: 0; max-width: 100%; }
   @page { size: A4; margin: 10mm 12mm 10mm 12mm; }
-  a { color: #1154CC; text-decoration: underline; }
+  a { color: var(--accent); text-decoration: underline; }
 }

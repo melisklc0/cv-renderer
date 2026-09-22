@@ -7,12 +7,13 @@
     {% include "_style.css.j2" %}
 
     /* ── Sections ── */
-    section { margin-bottom: 10px; }
+    section { margin-bottom: 13px; }
 
     h2 {
       font-size: var(--size-section);
-      font-weight: normal;
-      border-bottom: 1px solid #000;
+      font-weight: {{ "bold" if theme.heading_bold else "normal" }};
+      color: var(--color-heading);
+      border-bottom: 1px solid var(--color-heading);
       padding-bottom: 1px;
       margin-bottom: 5px;
       /* Never let a section heading sit alone at the foot of a page. */
@@ -22,6 +23,10 @@
 
     /* ── About ── */
     .about-text { text-align: justify; }
+
+    /* Entry headings carry their own size so a job title can outrank body text
+       without dragging the date column up with it. */
+    .entry-title { font-size: var(--size-entry); }
 
     /* ── Shared layout ── */
     .row-spaced {
@@ -36,7 +41,7 @@
     }
 
     /* ── Experience ── */
-    .job { margin-bottom: 7px; page-break-inside: avoid; }
+    .job { margin-bottom: 10px; page-break-inside: avoid; }
     .job-desc {
       margin: 3px 0 3px;
       text-align: justify;
@@ -65,16 +70,24 @@
       padding-left: 20px;
       margin-top: 4px;
     }
+    /* Hanging indent, not positioning. `position: relative` made every bullet a
+       positioned box, and CSS paints those after the whole normal flow — so the
+       PDF text layer carried each bullet list behind the sections that visually
+       followed it, and the absolute "-" landed after its own bullet's text.
+       That layer is what an ATS parses and what a copy-paste picks up. */
     ul.bullets li {
-      position: relative;
       padding-left: 12px;
-      margin-bottom: 2px;
+      text-indent: -12px;
+      margin-bottom: 4px;
+      line-height: 1.25;
       text-align: justify;
     }
     ul.bullets li::before {
       content: "-";
-      position: absolute;
-      left: 0;
+      display: inline-block;
+      width: 12px;
+      /* text-indent inherits; without this the marker gets pulled left too. */
+      text-indent: 0;
     }
 
     /* ── Education ── */
@@ -85,23 +98,28 @@
     }
 
     /* ── Skills ── */
-    .skill-row {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 2px;
+    .skills-grid {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      /* Narrow, because .skill-cat::after contributes the rest as a real space. */
+      column-gap: 4px;
+      row-gap: 2px;
       line-height: 1.15;
     }
-    .skill-cat {
-      min-width: 130px;
-      flex-shrink: 0;
-    }
+    .skill-cat { color: var(--color-title); }
+    /* The grid gap is physical space, not a character: where a long category
+       fills its column the text layer extracts "Reporting:Apache Superset" as
+       one token. A real space keeps the two sides separate for a parser. */
+    .skill-cat::after, .cert-label::after { content: "\00a0"; }
 
     /* ── Projects ── */
-    .project { margin-bottom: 7px; page-break-inside: avoid; }
+    .project { margin-bottom: 10px; page-break-inside: avoid; }
 
     /* ── Additional ── */
     .additional-item { margin-bottom: 3px; }
-    .cert-row { display: flex; gap: 6px; align-items: flex-start; }
+    /* No gap: .cert-label::after carries the separator, so this row spaces the
+       same way the Languages line above it does. */
+    .cert-row { display: flex; align-items: flex-start; }
     .cert-label { white-space: nowrap; flex-shrink: 0; }
   </style>
 </head>
@@ -124,7 +142,7 @@
   {% for job in experience %}
   <div class="job">
     <div class="row-spaced job-heading">
-      <strong>{{ job.title }}, {{ job.company }}, {{ job.location }}</strong>
+      <strong class="entry-title">{{ job.title }}, {{ job.company }}, {{ job.location }}</strong>
       <span class="dates">{{ job.start | fmtdate }} {{ labels.to }} {{ job.end | fmtdate }}</span>
     </div>
     {% if job.description %}<p class="job-desc">{{ job.description }}</p>{% endif %}
@@ -132,7 +150,7 @@
       {% for sub in job.projects %}
       <div class="subproject">
         <div class="row-spaced">
-          <strong>{{ sub.name }}{% if sub.subtitle %} — {{ sub.subtitle }}{% endif %}</strong>
+          <strong class="entry-title">{{ sub.name }}{% if sub.subtitle %} — {{ sub.subtitle }}{% endif %}</strong>
           <span class="dates">
             {%- if sub.year %}{{ sub.year }}
             {%- elif sub.start %}{{ sub.start | fmtdate }} {{ labels.to }} {{ sub.end | fmtdate }}
@@ -159,7 +177,7 @@
   <h2>{{ labels.education }}</h2>
   {% for e in education %}
   <div class="row-spaced edu-row">
-    <span><strong>{{ e.institution }}</strong>, {{ e.degree }}{% if e.location %}, {{ e.location }}{% endif %}</span>
+    <span><strong class="entry-title">{{ e.institution }}</strong>, {{ e.degree }}{% if e.location %}, {{ e.location }}{% endif %}</span>
     <span class="dates">{{ e.start | fmtdate }} {{ labels.to }} {{ e.end | fmtdate }}</span>
   </div>
   {% endfor %}
@@ -169,12 +187,12 @@
 {% if section == "skills" and skills %}
 <section>
   <h2>{{ labels.skills }}</h2>
-  {% for cat in skills %}
-  <div class="skill-row">
+  <div class="skills-grid">
+    {% for cat in skills %}
     <strong class="skill-cat">{{ cat.category }}:</strong>
     <span>{{ cat.entries | join(", ") }}</span>
+    {% endfor %}
   </div>
-  {% endfor %}
 </section>
 {% endif %}
 
@@ -184,7 +202,7 @@
   {% for proj in projects %}
   <div class="project">
     <div class="row-spaced">
-      <strong>{{ proj.name }}{% if proj.subtitle %}, {{ proj.subtitle }}{% endif %}</strong>
+      <strong class="entry-title">{{ proj.name }}{% if proj.subtitle %}, {{ proj.subtitle }}{% endif %}</strong>
       <span class="dates">
         {%- if proj.year %}{{ proj.year }}
         {%- elif proj.start %}{{ proj.start | fmtdate }} {{ labels.to }} {{ proj.end | fmtdate }}
