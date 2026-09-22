@@ -1,12 +1,17 @@
+{#- contact_links is unset when a caller renders the header without a profile;
+    default to labels, which is how this header has always behaved. The anchor
+    is not optional either way: a bare `linkedin.com/...` with no href resolves
+    as a relative path in a PDF viewer and opens a blank page. -#}
+{%- set labelled = contact_links is not defined or contact_links -%}
 <header>
   <h1>{{ meta.name }}</h1>
   <p class="headline">{{ meta.title }}</p>
   <p class="contact">
     {{- meta.location -}}
-    {%- if meta.email %} | <a href="mailto:{{ meta.email }}">{{ meta.email }}</a>{% endif %}
+    {%- if meta.email %} | <a href="mailto:{{ meta.email }}"{% if not labelled %} class="contact-link"{% endif %}>{{ meta.email }}</a>{% endif %}
     {%- if meta.phone %} | {{ meta.phone }}{% endif %}
-    {%- if meta.links.linkedin %} | <a href="https://{{ meta.links.linkedin }}">LinkedIn</a>{% endif %}
-    {%- if meta.links.github %} | <a href="https://{{ meta.links.github }}">GitHub</a>{% endif %}
-    {%- if meta.links.portfolio %} | <a href="https://{{ meta.links.portfolio }}">Portfolio</a>{% endif %}
+    {%- for label, url in [("LinkedIn", meta.links.linkedin), ("GitHub", meta.links.github), ("Portfolio", meta.links.portfolio)] %}
+      {%- if url %} | <a href="https://{{ url }}"{% if not labelled %} class="contact-link"{% endif %}>{{ label if labelled else url }}</a>{% endif %}
+    {%- endfor %}
   </p>
 </header>

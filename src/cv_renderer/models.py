@@ -107,6 +107,23 @@ class FontSizes(BaseModel):
     name: int = 16
     section: int = 12
     body: int = 9
+    headline: int | None = None  # the role line under the name; None = same as body
+    entry: int | None = None  # job/project/education headings; None = same as body
+
+
+class Theme(BaseModel):
+    """Colour and weight of the CV's furniture — headings, the role line, the
+    contact line. Every field defaults to the plain black-on-white look, so a
+    profile that sets none of them renders exactly as it did before a theme
+    existed.
+    """
+
+    heading_color: str = ""  # section headings and the rule under them
+    heading_bold: bool = False
+    title_color: str = ""  # the role line under the name, and skill category labels
+    title_bold: bool = False
+    title_italic: bool = False
+    muted_color: str = ""  # the contact line
 
 
 class Profile(BaseModel):
@@ -147,6 +164,15 @@ class Profile(BaseModel):
     skill_categories: list[str] | None = None  # None = include all
 
     # Presentation.
+    # Links and section rules. Defaults to the long-standing link blue, so an
+    # existing profile renders unchanged; a themed CV sets its own colour here.
+    accent_color: str = "#1154CC"
+    theme: Theme = Theme()
+    # False prints each link's address instead of its label — the form an ATS
+    # reading the PDF's text layer can actually use — and drops the link colour
+    # and underline. The anchor itself stays either way, carrying the https://
+    # the printed address omits.
+    contact_links: bool = True
     font_family: str = "Arial, Helvetica, sans-serif"
     font_sizes: FontSizes = FontSizes()
     template: str = "main"

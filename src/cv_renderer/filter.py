@@ -185,6 +185,9 @@ def apply_profile(cv: CVData, profile: Profile, labels: dict[str, str]) -> dict[
         "sections": profile.sections,
         "lang": profile.lang,
         "labels": labels,
+        "accent_color": profile.accent_color,
+        "theme": profile.theme.model_dump(),
+        "contact_links": profile.contact_links,
         "font_family": profile.font_family,
         "font_sizes": profile.font_sizes.model_dump(),
     }

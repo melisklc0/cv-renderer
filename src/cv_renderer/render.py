@@ -140,6 +140,9 @@ def render_cover_letter(
     jinja_template = env.get_template("cover_letter.html.j2")
     html = jinja_template.render(
         meta=context["meta"],
+        accent_color=profile.accent_color,
+        theme=profile.theme.model_dump(),
+        contact_links=profile.contact_links,
         font_family=context["font_family"],
         font_sizes=context["font_sizes"],
         lang=profile.lang,
