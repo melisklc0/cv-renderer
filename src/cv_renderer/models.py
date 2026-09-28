@@ -113,17 +113,18 @@ class FontSizes(BaseModel):
 
 class Theme(BaseModel):
     """Colour and weight of the CV's furniture — headings, the role line, the
-    contact line. Every field defaults to the plain black-on-white look, so a
-    profile that sets none of them renders exactly as it did before a theme
-    existed.
+    contact line. Defaults to the archetype palette rather than to plain black,
+    so a company profile — which carries no theme block of its own — renders
+    like the archetype it was derived from instead of falling back to a plainer
+    CV than the one it was reviewed as.
     """
 
-    heading_color: str = ""  # section headings and the rule under them
-    heading_bold: bool = False
-    title_color: str = ""  # the role line under the name, and skill category labels
-    title_bold: bool = False
+    heading_color: str = "#1F3864"  # section headings and the rule under them
+    heading_bold: bool = True
+    title_color: str = "#2F5597"  # role line under the name, skill labels, sub-project names
+    title_bold: bool = True
     title_italic: bool = False
-    muted_color: str = ""  # the contact line
+    muted_color: str = "#555555"  # the contact line
 
 
 class Profile(BaseModel):
@@ -168,11 +169,13 @@ class Profile(BaseModel):
     # existing profile renders unchanged; a themed CV sets its own colour here.
     accent_color: str = "#1154CC"
     theme: Theme = Theme()
-    # False prints each link's address instead of its label — the form an ATS
-    # reading the PDF's text layer can actually use — and drops the link colour
-    # and underline. The anchor itself stays either way, carrying the https://
-    # the printed address omits.
-    contact_links: bool = True
+    # Default False: print each link's address rather than a "LinkedIn" label.
+    # An ATS reads the PDF's text layer, where a label is a dead word and the
+    # address is the only usable form, so the address is the right default and
+    # the label is the opt-in. The anchor itself stays either way, carrying the
+    # https:// the printed address omits; True only restores the label, the link
+    # colour and the underline.
+    contact_links: bool = False
     font_family: str = "Arial, Helvetica, sans-serif"
     font_sizes: FontSizes = FontSizes()
     template: str = "main"

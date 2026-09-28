@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import pytest
@@ -91,3 +92,27 @@ def test_render_cover_letter_missing_file_raises(tmp_path: Path):
 def test_render_cover_letter_output_path_says_cover_letter(tmp_path: Path):
     out = render_cover_letter("ai-engineer", _letter(tmp_path, "Text."))
     assert out.name.endswith("_Cover_Letter.html")
+
+
+def test_render_contact_line_prints_addresses_but_stays_clickable():
+    # Two separate guarantees that used to be one flag. The printed text is the
+    # address, because that is the form an ATS can read out of the text layer;
+    # the href is still there, because a bare "linkedin.com/..." with no href
+    # resolves as a relative path in a PDF viewer and opens a blank page.
+    html = render("general").read_text(encoding="utf-8")
+    assert ">linkedin.com/" in html
+    assert ">LinkedIn</a>" not in html
+    assert 'href="https://linkedin.com/' in html
+    assert 'href="mailto:' in html
+
+
+def test_render_bullets_are_not_positioned():
+    # `position: relative` on a bullet makes it a positioned box, and CSS paints
+    # those after the whole normal flow — which moved every bullet list behind
+    # the sections that visually followed it in the PDF's text layer. Keep the
+    # markers in flow (hanging indent) so extraction order matches the page.
+    html = render("general").read_text(encoding="utf-8")
+    css = re.sub(r"/\*.*?\*/", "", html[html.index("<style>") : html.index("</style>")], flags=re.S)
+    bullet_rules = re.findall(r"ul\.bullets[^{]*\{[^}]*\}", css)
+    assert bullet_rules, "expected the bullet rules to be present in the CSS"
+    assert not any("position:" in rule for rule in bullet_rules)
