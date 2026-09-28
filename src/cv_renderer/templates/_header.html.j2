@@ -1,17 +1,31 @@
 {#- contact_links is unset when a caller renders the header without a profile;
-    default to labels, which is how this header has always behaved. The anchor
-    is not optional either way: a bare `linkedin.com/...` with no href resolves
-    as a relative path in a PDF viewer and opens a blank page. -#}
-{%- set labelled = contact_links is not defined or contact_links -%}
+    fall back to the model's own default (addresses, not labels) so the two
+    cannot drift apart. The anchor is not optional either way: a bare
+    `linkedin.com/...` with no href resolves as a relative path in a PDF viewer
+    and opens a blank page. -#}
+{%- set labelled = contact_links is defined and contact_links -%}
 <header>
   <h1>{{ meta.name }}</h1>
   <p class="headline">{{ meta.title }}</p>
+  {#- Two rows, not one: where a name reaches people, and how. One run of five
+      pipe-separated items wrapped mid-address on a narrow column and read as a
+      list of equals; split, each row is short enough to stay on one line. -#}
   <p class="contact">
     {{- meta.location -}}
-    {%- if meta.email %} | <a href="mailto:{{ meta.email }}"{% if not labelled %} class="contact-link"{% endif %}>{{ meta.email }}</a>{% endif %}
-    {%- if meta.phone %} | {{ meta.phone }}{% endif %}
-    {%- for label, url in [("LinkedIn", meta.links.linkedin), ("GitHub", meta.links.github), ("Portfolio", meta.links.portfolio)] %}
-      {%- if url %} | <a href="https://{{ url }}"{% if not labelled %} class="contact-link"{% endif %}>{{ label if labelled else url }}</a>{% endif %}
+    {%- if meta.email %} &bull; <a href="mailto:{{ meta.email }}"{% if not labelled %} class="contact-link"{% endif %}>{{ meta.email }}</a>{% endif %}
+    {%- if meta.phone %} &bull; {{ meta.phone }}{% endif %}
+  </p>
+  {%- set links = [("LinkedIn", meta.links.linkedin), ("GitHub", meta.links.github), ("Portfolio", meta.links.portfolio)] %}
+  {%- if links | selectattr(1) | list %}
+  {%- set ns = namespace(first=true) %}
+  <p class="contact">
+    {%- for label, url in links %}
+      {%- if url %}
+        {%- if not ns.first %} &bull; {% endif %}
+        {%- set ns.first = false -%}
+        <a href="https://{{ url }}"{% if not labelled %} class="contact-link"{% endif %}>{{ label if labelled else url }}</a>
+      {%- endif %}
     {%- endfor %}
   </p>
+  {%- endif %}
 </header>

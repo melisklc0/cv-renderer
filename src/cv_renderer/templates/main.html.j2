@@ -27,6 +27,9 @@
     /* Entry headings carry their own size so a job title can outrank body text
        without dragging the date column up with it. */
     .entry-title { font-size: var(--size-entry); }
+    /* Body size here alone: an institution is a fact, not an entry a reader
+       weighs, and at --size-entry it outranked the job titles above it. */
+    .edu-row .entry-title { font-size: var(--size-body); }
 
     /* ── Shared layout ── */
     .row-spaced {
@@ -46,10 +49,10 @@
       margin: 3px 0 3px;
       text-align: justify;
     }
-    /* One notch above body text, so a sub-project heading below it reads as the
-       second level rather than as a sibling of the employer line. */
+    /* No font-size of its own: the employer line gets its size from
+       .entry-title, exactly like a project or education row, so the date column
+       stays at body size instead of being dragged up with the title. */
     .job-heading {
-      font-size: calc(var(--size-body) + 1pt);
       break-after: avoid;
       page-break-after: avoid;
     }
@@ -58,6 +61,15 @@
     .subproject {
       margin: 4px 0 0 10px;
       page-break-inside: avoid;
+    }
+    /* Body size, bold — deliberately *not* .entry-title. At --size-entry a
+       sub-project name printed at the same size as the employer above it, so
+       the two read as siblings and the nesting only showed as an indent.
+       Coloured like the skill labels: an indent alone left the name reading as
+       one more bold run inside the employer's block. */
+    .subproject-title {
+      font-size: var(--size-body);
+      color: var(--color-title);
     }
     .subproject ul.bullets {
       padding-left: 12px;
@@ -105,6 +117,10 @@
       column-gap: 4px;
       row-gap: 2px;
       line-height: 1.15;
+      /* Kept whole: split across a page, the stranded categories read as a list
+         of their own, under whatever heading the next page happens to start with. */
+      break-inside: avoid;
+      page-break-inside: avoid;
     }
     .skill-cat { color: var(--color-title); }
     /* The grid gap is physical space, not a character: where a long category
@@ -150,7 +166,7 @@
       {% for sub in job.projects %}
       <div class="subproject">
         <div class="row-spaced">
-          <strong class="entry-title">{{ sub.name }}{% if sub.subtitle %} — {{ sub.subtitle }}{% endif %}</strong>
+          <strong class="subproject-title">{{ sub.name }}{% if sub.subtitle %} — {{ sub.subtitle }}{% endif %}</strong>
           <span class="dates">
             {%- if sub.year %}{{ sub.year }}
             {%- elif sub.start %}{{ sub.start | fmtdate }} {{ labels.to }} {{ sub.end | fmtdate }}
